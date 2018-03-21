@@ -13,23 +13,32 @@ import ARKit
 let screenHeight = UIScreen.main.bounds.height
 let screenWidth = UIScreen.main.bounds.width
 
+private let rotateAction    = SCNAction.rotateTo(x: 0, y: .pi * 2, z: 0, duration: targetAnimationTime, usesShortestUnitArc: false)
+private let fadeInAction    = SCNAction.fadeIn(duration: targetAnimationTime)
+private let fadeOutAction   = SCNAction.fadeOut(duration: targetAnimationTime)
+private let removeAction    = SCNAction.removeFromParentNode()
+
+private let targetAnimationTime         : TimeInterval   = 1.0
+private let targetRemainingTime         : Int            = 5
+private let generationCycle             : TimeInterval   = 6.0
+
 class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDelegate {
 
     private let frontSightRadius            : CGFloat        = 25.0
     
-    private let generationCycle             : TimeInterval   = 6.0
-    private let targetRemainingTime         : Int            = 5
-    
-    var worldOrigin: SCNVector3?
+    private var currentScore: Int = 0 {
+        didSet {
+            print("Current Score \(currentScore)")
+        }
+    }
     
     var targetNodes = Set<TargetNode>()
-    
     var bulletNodes = Set<BulletNode>()
     
     lazy var generateTimer: Timer = {
         weak var weakSelf = self
         return Timer(timeInterval: generationCycle, repeats: true) { _ in
-            print("generate!")
+            print("Generate!")
             weakSelf?.generateTarget()
         }
     }()
@@ -49,6 +58,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
         sceneView.scene = scene
         
         sceneView.scene.physicsWorld.contactDelegate = self
+        sceneView.scene.physicsWorld.gravity = SCNVector3(0, -1, 0)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -56,14 +66,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
         
         // Create a session configuration
         let configuration = ARWorldTrackingConfiguration()
-
         configuration.worldAlignment = .gravityAndHeading
-        
-        // Run the view's session
-        sceneView.session.run(configuration)
-        
+
 //        sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin,
 //                                  ARSCNDebugOptions.showFeaturePoints]
+
+        // Run the view's session
+        sceneView.session.run(configuration)
         
         let frontSight = FrontSightView(frame: CGRect(x: 0,
                                                       y: 0,
@@ -74,8 +83,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(gestureRecognize:)))
         view.addGestureRecognizer(tapGesture)
-        
-//        worldOrigin = sceneView.scene.ori
         
 //        let retryButton = UIButton(frame: CGRect(origin: CGPoint(x: 25, y: screenHeight - 50),
 //                                                 size: CGSize(width: 40, height: 40)))
@@ -108,39 +115,43 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
                 return
             }
             
+            let x: CGFloat = 4.0
+            let y: CGFloat = (CGFloat(arc4random() % 10) / 5.0)
+            let z: CGFloat = (CGFloat(arc4random() % 10) / 5.0) - 1.0
+            
+            let newPosition = SCNVector3(x, y, z)
+            if targetNodes.filter({ (node) -> Bool in
+                CGFloat(node.position.distance(from: newPosition)) <= frontSightRadius
+            }).count > 0 {
+                continue
+            }
+            
             let targetNode = TargetNode()
-            
-            let originPosition: SCNVector3 = SCNVector3(4.0, 0.0, 0.0)
-            
-            let x: CGFloat = CGFloat(originPosition.x) + (CGFloat(arc4random() % 20) / 5.0) - 2.0
-            let y: CGFloat = CGFloat(originPosition.y) + (CGFloat(arc4random() % 20) / 5.0) - 2.0
-            let z: CGFloat = CGFloat(originPosition.z) + (CGFloat(arc4random() % 20) / 5.0) - 2.0
-            
-            targetNode.position = SCNVector3(x, y, z)
+            targetNode.position = newPosition
             targetNode.rotation = SCNVector4(x: 0, y: 0, z: 1, w: .pi / 2.0)
             
-            sceneView.scene.rootNode.addChildNode(targetNode)
-            
-            targetNodes.insert(targetNode)
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(targetRemainingTime),
-                                          execute: { [weak self] in
-                self?.targetNodes.remove(targetNode)
-                targetNode.removeFromParentNode()
-            })
+            self.targetNodes.insert(targetNode)
+            targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
+            self.sceneView.scene.rootNode.addChildNode(targetNode)
         }
     }
 
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
         let bulletNode = BulletNode()
-        
+
         let (direction, position) = getUserVector()
-        bulletNode.position = position
         
+        let originalX: Float = 3.0
+        bulletNode.position = SCNVector3(originalX,
+                                         position.y + (originalX - position.x) * direction.y / direction.x,
+                                         position.z + (originalX - position.x) * direction.z / direction.x)
+        bulletNode.rotation = SCNVector4(0, 0, 1, Double.pi / 2)
+
         let bulletDirection = direction
-        bulletNode.physicsBody?.applyForce(bulletDirection, asImpulse: true)
+        bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
+                                           asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
-        
+
         bulletNodes.insert(bulletNode)
     }
     
@@ -156,13 +167,22 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
     }
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        for bullet in bulletNodes {
-            if bullet.worldPosition.distance(from: .zero) > 0.9 {
-                print("Remove Bullet!")
-                
-                bullet.removeFromParentNode()
-                bulletNodes.remove(bullet)
-            }
+        var bulletToRemove: [BulletNode] = []
+        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 10 {
+            bulletToRemove.append(bullet)
+        }
+        bulletToRemove.forEach {
+            $0.removeFromParentNode()
+            bulletNodes.remove($0)
+        }
+        
+        var targetToRemove: [TargetNode] = []
+        for target in targetNodes where target.presentation.position.y < -5 && !target.hit {
+            targetToRemove.append(target)
+        }
+        targetToRemove.forEach {
+            $0.removeFromParentNode()
+            targetNodes.remove($0)
         }
     }
     
@@ -185,31 +205,30 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
         if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
             || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
             
-            print("Hit Target!")
-            
             var targetNode = TargetNode()
-            var bulletNode = BulletNode()
             if contact.nodeA is TargetNode {
                 targetNode = contact.nodeA as! TargetNode
-                bulletNode = contact.nodeB as! BulletNode
             } else {
                 targetNode = contact.nodeB as! TargetNode
-                bulletNode = contact.nodeA as! BulletNode
             }
+            
+            guard !targetNode.hit else {
+                return
+            }
+            
+            currentScore += targetNode.hitScore
+            targetNode.hit = true
             
             let particleSystem = SCNParticleSystem(named: "art.scnassets/Explode.scnp", inDirectory: nil)
             let particleSystemNode = SCNNode()
             particleSystemNode.addParticleSystem(particleSystem!)
             particleSystemNode.position = targetNode.position
             sceneView.scene.rootNode.addChildNode(particleSystemNode)
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500),
-                                          execute: { [weak self] in
-                self?.targetNodes.remove(targetNode)
-                targetNode.removeFromParentNode()
-                
-                self?.bulletNodes.remove(bulletNode)
-                bulletNode.removeFromParentNode()
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1),
+                                          execute: { [unowned self] in
+                                            self.targetNodes.remove(targetNode)
+                                            targetNode.removeFromParentNode()
             })
         }
     }
