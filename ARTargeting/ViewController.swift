@@ -10,35 +10,40 @@ import UIKit
 import SceneKit
 import ARKit
 
-let screenHeight = UIScreen.main.bounds.height
-let screenWidth = UIScreen.main.bounds.width
-
-private let rotateAction    = SCNAction.rotateTo(x: 0, y: .pi * 2, z: 0, duration: targetAnimationTime, usesShortestUnitArc: false)
-private let fadeInAction    = SCNAction.fadeIn(duration: targetAnimationTime)
-private let fadeOutAction   = SCNAction.fadeOut(duration: targetAnimationTime)
-private let removeAction    = SCNAction.removeFromParentNode()
-
-private let targetAnimationTime         : TimeInterval   = 1.0
-private let targetRemainingTime         : Int            = 5
-private let generationCycle             : TimeInterval   = 6.0
+let screenHeight    = UIScreen.main.bounds.height
+let screenWidth     = UIScreen.main.bounds.width
 
 class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDelegate {
 
-    private let frontSightRadius            : CGFloat        = 25.0
+    private let frontSightRadius    : CGFloat        = 25.0
+    private let generationCycle     : TimeInterval   = 3.0
     
     private var currentScore: Int = 0 {
         didSet {
-            print("Current Score \(currentScore)")
+            DispatchQueue.main.async { [unowned self] in
+                self.scoreLabel.text = "\(self.currentScore)"
+            }
         }
     }
+    private lazy var scoreLabel: UILabel = {
+        let label = UILabel(frame: CGRect(x: 30, y: 30,
+                                          width: 60, height: 60))
+        label.font = UIFont.systemFont(ofSize: 30.0, weight: .bold)
+        label.textColor = .black
+        label.text = "0"
+        label.textAlignment = .center
+        label.backgroundColor = .white
+        label.layer.cornerRadius = 10.0
+        label.layer.masksToBounds = true
+        return label
+    }()
     
-    var targetNodes = Set<TargetNode>()
-    var bulletNodes = Set<BulletNode>()
+    private var targetNodes = Set<TargetNode>()
+    private var bulletNodes = Set<BulletNode>()
     
-    lazy var generateTimer: Timer = {
+    private lazy var generateTimer: Timer = {
         weak var weakSelf = self
         return Timer(timeInterval: generationCycle, repeats: true) { _ in
-            print("Generate!")
             weakSelf?.generateTarget()
         }
     }()
@@ -48,13 +53,9 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Set the view's delegate
         sceneView.delegate = self
         
-        // Create a new scene
         let scene = SCNScene()
-        
-        // Set the scene to the view
         sceneView.scene = scene
         
         sceneView.scene.physicsWorld.contactDelegate = self
@@ -68,10 +69,6 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravityAndHeading
 
-//        sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin,
-//                                  ARSCNDebugOptions.showFeaturePoints]
-
-        // Run the view's session
         sceneView.session.run(configuration)
         
         let frontSight = FrontSightView(frame: CGRect(x: 0,
@@ -89,13 +86,14 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
 //        retryButton.setImage(#imageLiteral(resourceName: "retry"), for: .normal)
 //        self.view.addSubview(retryButton)
         
+        self.view.addSubview(scoreLabel)
+        
         RunLoop.main.add(generateTimer, forMode: .commonModes)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
-        // Pause the view's session
         sceneView.session.pause()
     }
     
@@ -109,7 +107,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
     }
     
     private func generateTarget() {
-        let count = Int(arc4random() % 5)
+        let count = Int(arc4random() % 3)
         for _ in 0..<count {
             guard targetNodes.count <= 10 else {
                 return
@@ -120,13 +118,13 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
             let z: CGFloat = (CGFloat(arc4random() % 10) / 5.0) - 1.0
             
             let newPosition = SCNVector3(x, y, z)
-            if targetNodes.filter({ (node) -> Bool in
-                CGFloat(node.position.distance(from: newPosition)) <= frontSightRadius
-            }).count > 0 {
-                continue
-            }
+//            if targetNodes.filter({ (node) -> Bool in
+//                CGFloat(node.position.distance(from: newPosition)) <= frontSightRadius
+//            }).count > 0 {
+//                continue
+//            }
             
-            let targetNode = TargetNode()
+            let targetNode = TargetNode.generateTarget()
             targetNode.position = newPosition
             targetNode.rotation = SCNVector4(x: 0, y: 0, z: 1, w: .pi / 2.0)
             
@@ -151,19 +149,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
                                            asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
-
         bulletNodes.insert(bulletNode)
-    }
-    
-    private func getUserVector() -> (direction: SCNVector3, position: SCNVector3) { // (direction, position)
-        if let frame = self.sceneView.session.currentFrame {
-            let mat = SCNMatrix4(frame.camera.transform) // 4x4 transform matrix describing camera in world space
-            let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33) // orientation of camera in world space
-            let position = SCNVector3(mat.m41, mat.m42, mat.m43) // location of camera in world space
-            
-            return (direction, position)
-        }
-        return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
     }
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
@@ -205,7 +191,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
         if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
             || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
             
-            var targetNode = TargetNode()
+            var targetNode: TargetNode = TargetNode()
             if contact.nodeA is TargetNode {
                 targetNode = contact.nodeA as! TargetNode
             } else {
@@ -222,15 +208,23 @@ class ViewController: UIViewController, ARSCNViewDelegate, SCNPhysicsContactDele
             let particleSystem = SCNParticleSystem(named: "art.scnassets/Explode.scnp", inDirectory: nil)
             let particleSystemNode = SCNNode()
             particleSystemNode.addParticleSystem(particleSystem!)
-            particleSystemNode.position = targetNode.position
+            particleSystem?.particleColor = targetNode.type?.color ?? .clear
+            particleSystemNode.position = targetNode.presentation.position
             sceneView.scene.rootNode.addChildNode(particleSystemNode)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1),
-                                          execute: { [unowned self] in
-                                            self.targetNodes.remove(targetNode)
-                                            targetNode.removeFromParentNode()
-            })
+            self.targetNodes.remove(targetNode)
+            targetNode.removeFromParentNode()
         }
+    }
+    
+    private func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
+        if let frame = self.sceneView.session.currentFrame {
+            let mat = SCNMatrix4(frame.camera.transform)
+            let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)
+            let position = SCNVector3(mat.m41, mat.m42, mat.m43)
+            return (direction, position)
+        }
+        return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
     }
     
 }

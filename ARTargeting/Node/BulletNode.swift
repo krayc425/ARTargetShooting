@@ -14,7 +14,7 @@ class BulletNode: SCNNode {
     override init() {
         super.init()
         
-        let sphere = SCNSphere(radius: 0.025)
+        let sphere = SCNSphere(radius: 0.075)
         self.geometry = sphere
         
         let shape = SCNPhysicsShape(geometry: sphere, options: nil)
@@ -26,7 +26,7 @@ class BulletNode: SCNNode {
         self.physicsBody?.contactTestBitMask = CollisionCategory.target.rawValue
         
         let material = SCNMaterial()
-        material.diffuse.contents = UIColor.white
+        material.diffuse.contents = UIColor(white: 1.0, alpha: 0.0)
         self.geometry?.materials = [material]
     }
     
