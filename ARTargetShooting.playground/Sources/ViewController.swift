@@ -10,8 +10,8 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
-
+public class ViewController: UIViewController, ARSCNViewDelegate {
+    
     private let frontSightRadius    : CGFloat        = 25.0
     private let generationCycle     : TimeInterval   = 3.0
     
@@ -41,10 +41,15 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }()
     
-    @IBOutlet var sceneView: ARSCNView!
+    private lazy var sceneView: ARSCNView = {
+        return ARSCNView(frame: CGRect(x: 0, y: 0,
+                                       width: screenWidth, height: screenHeight))
+    }()
     
-    override func viewDidLoad() {
+    public override func viewDidLoad() {
         super.viewDidLoad()
+        
+        self.view = sceneView
         
         sceneView.delegate = self
         
@@ -55,30 +60,23 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.scene.physicsWorld.gravity = SCNVector3(0, -1, 0)
     }
     
-    override func viewWillAppear(_ animated: Bool) {
+    public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
-
-        sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin]
         
         sceneView.session.run(configuration)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(gestureRecognize:)))
-        view.addGestureRecognizer(tapGesture)
+        self.view.addGestureRecognizer(tapGesture)
         
         let frontSight = FrontSightView(frame: CGRect(x: 0,
                                                       y: 0,
-                                                      width: frontSightRadius * 2,
-                                                      height: frontSightRadius * 2))
+                                                      width: 2 * frontSightRadius,
+                                                      height: 2 * frontSightRadius))
         frontSight.center = sceneView.center
         self.view.addSubview(frontSight)
-        
-//        let retryButton = UIButton(frame: CGRect(origin: CGPoint(x: 25, y: screenHeight - 50),
-//                                                 size: CGSize(width: 40, height: 40)))
-//        retryButton.setImage(#imageLiteral(resourceName: "retry"), for: .normal)
-//        self.view.addSubview(retryButton)
         
         let blurEffect = UIBlurEffect(style: .dark)
         let blurView = UIVisualEffectView(effect: blurEffect)
@@ -89,7 +87,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         RunLoop.main.add(generateTimer, forMode: .commonModes)
     }
     
-    override func viewWillDisappear(_ animated: Bool) {
+    public override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
         sceneView.session.pause()
@@ -99,14 +97,12 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         generateTimer.invalidate()
     }
     
-    override func didReceiveMemoryWarning() {
+    public override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }
     
     private func generateTarget() {
         let count = Int(arc4random() % 3) + 1
-        
-        print("Generate \(count)")
         
         var i = 0
         while i < count {
@@ -129,8 +125,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             targetNode.position = newPosition
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
             
-            print("\(i) \(targetNode.position)")
-            
             self.targetNodes.insert(targetNode)
             targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
             self.sceneView.scene.rootNode.addChildNode(targetNode)
@@ -138,18 +132,17 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             i += 1
         }
     }
-
+    
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
         let bulletNode = BulletNode()
-
+        
         let (direction, position) = getUserVector()
         
         let originalZ: Float = Float(-5.0 + bulletRadius * 2.0)
         bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
                                          position.y + (originalZ - position.z) * direction.y / direction.z,
                                          originalZ)
-        bulletNode.rotation = SCNVector4(1, 0, 0, Double.pi / 2)
-
+        
         let bulletDirection = direction
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
                                            asImpulse: true)
@@ -157,7 +150,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         bulletNodes.insert(bulletNode)
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+    public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         var bulletToRemove: [BulletNode] = []
         for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 10 {
             bulletToRemove.append(bullet)
@@ -181,17 +174,17 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     
-    func session(_ session: ARSession, didFailWithError error: Error) {
+    public func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
         
     }
     
-    func sessionWasInterrupted(_ session: ARSession) {
+    public func sessionWasInterrupted(_ session: ARSession) {
         // Inform the user that the session has been interrupted, for example, by presenting an overlay
         
     }
     
-    func sessionInterruptionEnded(_ session: ARSession) {
+    public func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required
         
     }
@@ -210,7 +203,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
 extension ViewController: SCNPhysicsContactDelegate {
     
-    func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
+    public func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
         if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
             || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
             
@@ -228,7 +221,7 @@ extension ViewController: SCNPhysicsContactDelegate {
             currentScore += targetNode.hitScore
             targetNode.hit = true
             
-            let particleSystem = SCNParticleSystem(named: "art.scnassets/Explode.scnp", inDirectory: nil)
+            let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
             particleSystem?.particleColor = targetNode.type?.color ?? .clear
             let particleSystemNode = SCNNode()
             particleSystemNode.addParticleSystem(particleSystem!)
@@ -240,10 +233,4 @@ extension ViewController: SCNPhysicsContactDelegate {
         }
     }
     
-    static func loadFromSB() -> ViewController {
-        let mainSB = UIStoryboard(name: "Main", bundle: nil)
-        let vc = mainSB.instantiateViewController(withIdentifier: "ViewController") as! ViewController
-        return vc
-    }
-
 }

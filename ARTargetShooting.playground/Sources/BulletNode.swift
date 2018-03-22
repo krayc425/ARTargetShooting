@@ -9,12 +9,14 @@
 import UIKit
 import SceneKit
 
+let bulletRadius: CGFloat = 0.075
+
 class BulletNode: SCNNode {
     
     override init() {
         super.init()
         
-        let sphere = SCNSphere(radius: 0.075)
+        let sphere = SCNSphere(radius: bulletRadius)
         self.geometry = sphere
         
         let shape = SCNPhysicsShape(geometry: sphere, options: nil)

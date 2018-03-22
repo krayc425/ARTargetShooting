@@ -8,17 +8,16 @@
 
 import UIKit
 import SceneKit
+import PlaygroundSupport
 
 let targetRadius: CGFloat = 0.2
 
-struct CollisionCategory: OptionSet {
-    let rawValue: Int
-    
-    static let bullet = CollisionCategory(rawValue: 1 << 0) // 00...01
-    static let target = CollisionCategory(rawValue: 1 << 1) // 00...10
+enum CollisionCategory: Int {
+    case bullet = 1
+    case target = 2
 }
 
-enum TargetNodeTypeNum {
+enum TargetNodeTypeNum: Int {
     case normal
     case high
     case demon
@@ -27,8 +26,10 @@ enum TargetNodeTypeNum {
 struct TargetNodeType {
     var score: Int = 1
     var color: UIColor = .normal
+    var typeNum: TargetNodeTypeNum = .normal
     
     init(typeNum: TargetNodeTypeNum) {
+        self.typeNum = typeNum
         switch typeNum {
         case .normal:
             score = 1
@@ -79,13 +80,13 @@ class TargetNode: SCNNode {
         let n = arc4random() % 10
         if n <= 1 {
             targetNode.type = TargetNodeType(typeNum: .high)
-            material.diffuse.contents = #imageLiteral(resourceName: "target-high.png")
+            material.diffuse.contents = UIImage(named: "target-high")
         } else if n >= 8 {
             targetNode.type = TargetNodeType(typeNum: .demon)
-            material.diffuse.contents = #imageLiteral(resourceName: "target-demon.png")
+            material.diffuse.contents = UIImage(named: "target-demon")
         } else {
             targetNode.type = TargetNodeType(typeNum: .normal)
-            material.diffuse.contents = #imageLiteral(resourceName: "target-normal.png")
+            material.diffuse.contents = UIImage(named: "target-normal")
         }
         targetNode.geometry?.materials = [material, material]
         

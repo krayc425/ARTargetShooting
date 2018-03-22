@@ -11,11 +11,9 @@ import SceneKit
 
 let targetRadius: CGFloat = 0.2
 
-struct CollisionCategory: OptionSet {
-    let rawValue: Int
-    
-    static let bullet = CollisionCategory(rawValue: 1 << 0) // 00...01
-    static let target = CollisionCategory(rawValue: 1 << 1) // 00...10
+public enum CollisionCategory: Int {
+    case bullet = 1
+    case target = 2
 }
 
 enum TargetNodeTypeNum {

@@ -8,7 +8,7 @@
 
 import UIKit
 
-private let dotWidth: CGFloat = 5.0
+let dotWidth: CGFloat = 5.0
 
 class FrontSightView: UIView {
 
