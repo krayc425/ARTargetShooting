@@ -20,6 +20,10 @@
 		24070BB3205FAF1600462C26 /* BulletNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24070BB2205FAF1600462C26 /* BulletNode.swift */; };
 		24070BB5205FD30300462C26 /* UIColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24070BB4205FD30300462C26 /* UIColorExtension.swift */; };
 		24584BB020635A4E0017E518 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24584BAF20635A4E0017E518 /* Utilities.swift */; };
+		248B3AB02063F38C00B570B2 /* hit.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 248B3AAE2063F38C00B570B2 /* hit.mp3 */; };
+		248B3AB12063F38C00B570B2 /* shoot.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 248B3AAF2063F38C00B570B2 /* shoot.mp3 */; };
+		248B3AB32063F3A000B570B2 /* SoundHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248B3AB22063F3A000B570B2 /* SoundHelper.swift */; };
+		248B3AB52063F44300B570B2 /* SCNNodeExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248B3AB42063F44300B570B2 /* SCNNodeExtension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +42,10 @@
 		24070BB2205FAF1600462C26 /* BulletNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BulletNode.swift; sourceTree = "<group>"; };
 		24070BB4205FD30300462C26 /* UIColorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIColorExtension.swift; sourceTree = "<group>"; };
 		24584BAF20635A4E0017E518 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
+		248B3AAE2063F38C00B570B2 /* hit.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = hit.mp3; sourceTree = "<group>"; };
+		248B3AAF2063F38C00B570B2 /* shoot.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = shoot.mp3; sourceTree = "<group>"; };
+		248B3AB22063F3A000B570B2 /* SoundHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundHelper.swift; sourceTree = "<group>"; };
+		248B3AB42063F44300B570B2 /* SCNNodeExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SCNNodeExtension.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +82,7 @@
 				24070B94205F9DC200462C26 /* AppDelegate.swift */,
 				24070B98205F9DC200462C26 /* ViewController.swift */,
 				24070BA8205F9E6000462C26 /* FrontSightView.swift */,
+				248B3AB22063F3A000B570B2 /* SoundHelper.swift */,
 				24584BAF20635A4E0017E518 /* Utilities.swift */,
 				245C4DFC2062B41500865440 /* Node */,
 				24ED94E7206245BE00E716F8 /* Extensions */,
@@ -82,6 +91,8 @@
 				24070B9D205F9DC200462C26 /* Assets.xcassets */,
 				24070B9F205F9DC200462C26 /* LaunchScreen.storyboard */,
 				24070BA2205F9DC200462C26 /* Info.plist */,
+				248B3AAE2063F38C00B570B2 /* hit.mp3 */,
+				248B3AAF2063F38C00B570B2 /* shoot.mp3 */,
 			);
 			path = ARTargeting;
 			sourceTree = "<group>";
@@ -101,6 +112,7 @@
 				24070BAC205FA6E400462C26 /* FloatExtension.swift */,
 				24070BB4205FD30300462C26 /* UIColorExtension.swift */,
 				24070BAA205FA6BE00462C26 /* SCNVector3Extension.swift */,
+				248B3AB42063F44300B570B2 /* SCNNodeExtension.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -168,6 +180,8 @@
 				24070BA1205F9DC200462C26 /* LaunchScreen.storyboard in Resources */,
 				24070B9E205F9DC200462C26 /* Assets.xcassets in Resources */,
 				24070B9C205F9DC200462C26 /* Main.storyboard in Resources */,
+				248B3AB12063F38C00B570B2 /* shoot.mp3 in Resources */,
+				248B3AB02063F38C00B570B2 /* hit.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -179,7 +193,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				24070BA9205F9E6000462C26 /* FrontSightView.swift in Sources */,
+				248B3AB32063F3A000B570B2 /* SoundHelper.swift in Sources */,
 				24070BB3205FAF1600462C26 /* BulletNode.swift in Sources */,
+				248B3AB52063F44300B570B2 /* SCNNodeExtension.swift in Sources */,
 				24070B99205F9DC200462C26 /* ViewController.swift in Sources */,
 				24070BB5205FD30300462C26 /* UIColorExtension.swift in Sources */,
 				24070B95205F9DC200462C26 /* AppDelegate.swift in Sources */,

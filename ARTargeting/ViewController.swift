@@ -23,11 +23,24 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     private lazy var scoreLabel: UILabel = {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 80))
+        let label = UILabel(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 100))
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
         label.textColor = .white
         label.text = "0"
         label.textAlignment = .center
+        return label
+    }()
+    private lazy var blurView: UIVisualEffectView = {
+        let blurEffect = UIBlurEffect(style: .dark)
+        return UIVisualEffectView(effect: blurEffect)
+    }()
+    private lazy var waitLabel: UILabel = {
+        let label = UILabel(frame: CGRect(x: screenWidth / 2.0 - 150, y: screenHeight / 2.0 - 100, width: 300, height: 200))
+        label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
+        label.textColor = .white
+        label.text = "Move your\ndevice around"
+        label.textAlignment = .center
+        label.numberOfLines = 2
         return label
     }()
     
@@ -61,8 +74,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
 
-        sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin]
-        
         sceneView.session.run(configuration)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(gestureRecognize:)))
@@ -75,18 +86,19 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         frontSight.center = sceneView.center
         self.view.addSubview(frontSight)
         
-//        let retryButton = UIButton(frame: CGRect(origin: CGPoint(x: 25, y: screenHeight - 50),
-//                                                 size: CGSize(width: 40, height: 40)))
-//        retryButton.setImage(#imageLiteral(resourceName: "retry"), for: .normal)
-//        self.view.addSubview(retryButton)
+        self.blurView.frame = self.waitLabel.frame
+        self.view.addSubview(self.blurView)
+        self.view.addSubview(self.waitLabel)
         
-        let blurEffect = UIBlurEffect(style: .dark)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        blurView.frame = scoreLabel.frame
-        self.view.addSubview(blurView)
-        self.view.addSubview(scoreLabel)
-        
-        RunLoop.main.add(generateTimer, forMode: .commonModes)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
+            self.waitLabel.text = "Tap to Shoot!"
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) { [unowned self] in
+            self.waitLabel.removeFromSuperview()
+            self.blurView.frame = self.scoreLabel.frame
+            self.view.addSubview(self.scoreLabel)
+            RunLoop.main.add(self.generateTimer, forMode: .commonModes)
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -105,8 +117,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     private func generateTarget() {
         let count = Int(arc4random() % 3) + 1
-        
-        print("Generate \(count)")
         
         var i = 0
         while i < count {
@@ -128,8 +138,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             let targetNode = TargetNode.generateTarget()
             targetNode.position = newPosition
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
-            
-            print("\(i) \(targetNode.position)")
             
             self.targetNodes.insert(targetNode)
             targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
@@ -153,13 +161,14 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         let bulletDirection = direction
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
                                            asImpulse: true)
+        bulletNode.playSound(.shoot)
         sceneView.scene.rootNode.addChildNode(bulletNode)
         bulletNodes.insert(bulletNode)
     }
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         var bulletToRemove: [BulletNode] = []
-        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 10 {
+        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 20 {
             bulletToRemove.append(bullet)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -235,15 +244,11 @@ extension ViewController: SCNPhysicsContactDelegate {
             particleSystemNode.position = targetNode.presentation.position
             sceneView.scene.rootNode.addChildNode(particleSystemNode)
             
+            particleSystemNode.playSound(.hit)
+            
             self.targetNodes.remove(targetNode)
             targetNode.removeFromParentNode()
         }
-    }
-    
-    static func loadFromSB() -> ViewController {
-        let mainSB = UIStoryboard(name: "Main", bundle: nil)
-        let vc = mainSB.instantiateViewController(withIdentifier: "ViewController") as! ViewController
-        return vc
     }
 
 }

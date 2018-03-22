@@ -1,12 +1,13 @@
 /*:
  # ARTargetShooting
- Hi! I'm **Kuixi Song**, a junior student majored in Software Engineering from Nanjing University, China. I've devoted in iOS development since last year and this year, I made some digging into the newest `ARKit`, which is awesome and easy to use! So I created a little target shooting game for WWDC 2018 submitting. Hope you like it! 😊
+ Hi! I'm **Kuixi Song**, a junior student majored in Software Engineering from Nanjing University, China. I've devoted in iOS development since last year and this year, I made some digging into the newest `ARKit`, which is awesome and easy to use! So I created a little target shooting game for WWDC 2018 scholarship submission. Hope you like it! 😊
  
- ## How to play?
- After tapping the `Run my code` button, move your iPad around to initialize the `ARKit`. Once done, some targets will show up in the screen. Using the front sight (in the center of screen) to aim at these targets, and shoot them down!
+ ## How to play
+ After tapping the `Run my code` button, move your iPad around to initialize the `ARKit`. Once done, some targets will show up in the screen randomly. Try to find them, use the front sight (in the center of screen) to aim at these targets, and tap the screen to shoot them down!
  
- ### Notice
- Targets in different colors represents different scores. Be sure to shoot the right target!
+ ## Notice
+ * Your iPad should be held in landscape mode.
+ * Targets in different colors represent different scores. Be sure to shoot the right target!
  
  ![1 point](target-normal.png "1 point") 1 point
  
@@ -18,13 +19,14 @@
  
  */
 
+//: Should you find this game too easy, you can change the value to a bigger one so that the targets will drop faster. (Best range: `[1, 5]`)
+let gravity: UInt = 1
+
 //#-hidden-code
 import UIKit
 import PlaygroundSupport
-//#-end-hidden-code
 
-//#-hidden-code
-let viewController = ViewController()
+let viewController = ViewController(gravityValue: gravity)
 viewController.preferredContentSize = CGSize(width: screenWidth, height: screenHeight)
 PlaygroundPage.current.liveView = viewController
 PlaygroundPage.current.needsIndefiniteExecution = true

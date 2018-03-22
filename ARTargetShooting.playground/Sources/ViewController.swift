@@ -30,6 +30,16 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
         label.textAlignment = .center
         return label
     }()
+    private lazy var waitLabel: UILabel = {
+        let label = UILabel(frame: CGRect(x: screenWidth / 2.0 - 150, y: screenHeight / 2.0 - 100, width: 300, height: 200))
+        label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
+        label.textColor = .white
+        label.text = "Move your\ndevice around"
+        label.textAlignment = .center
+        label.numberOfLines = 2
+        return label
+    }()
+    private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
     private var targetNodes = Set<TargetNode>()
     private var bulletNodes = Set<BulletNode>()
@@ -41,10 +51,17 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }()
     
-    private lazy var sceneView: ARSCNView = {
-        return ARSCNView(frame: CGRect(x: 0, y: 0,
-                                       width: screenWidth, height: screenHeight))
-    }()
+    private var sceneView: ARSCNView = ARSCNView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
+    
+    private var gravity: SCNVector3 = SCNVector3(0, -1, 0)
+    
+    public convenience init(gravityValue: UInt) {
+        self.init(nibName: nil, bundle: nil)
+        
+        if gravityValue > 0 {
+            self.gravity = SCNVector3(0, -1 * Int(gravityValue), 0)
+        }
+    }
     
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -57,7 +74,7 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.scene = scene
         
         sceneView.scene.physicsWorld.contactDelegate = self
-        sceneView.scene.physicsWorld.gravity = SCNVector3(0, -1, 0)
+        sceneView.scene.physicsWorld.gravity = self.gravity
     }
     
     public override func viewWillAppear(_ animated: Bool) {
@@ -78,13 +95,19 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
         frontSight.center = sceneView.center
         self.view.addSubview(frontSight)
         
-        let blurEffect = UIBlurEffect(style: .dark)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        blurView.frame = scoreLabel.frame
-        self.view.addSubview(blurView)
-        self.view.addSubview(scoreLabel)
+        self.blurView.frame = self.waitLabel.frame
+        self.view.addSubview(self.blurView)
+        self.view.addSubview(self.waitLabel)
         
-        RunLoop.main.add(generateTimer, forMode: .commonModes)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
+            self.waitLabel.text = "Tap to Shoot!"
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) { [unowned self] in
+            self.waitLabel.removeFromSuperview()
+            self.blurView.frame = self.scoreLabel.frame
+            self.view.addSubview(self.scoreLabel)
+            RunLoop.main.add(self.generateTimer, forMode: .commonModes)
+        }
     }
     
     public override func viewWillDisappear(_ animated: Bool) {
@@ -111,7 +134,7 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
             }
             
             let x: Float = (Float(arc4random() % 20) / 5.0) - 2.0
-            let y: Float = (Float(arc4random() % 10) / 5.0)
+            let y: Float = (Float(arc4random() % 10) / 5.0) + 0.5
             let z: Float = -5.0
             
             let newPosition = SCNVector3(x, y, z)
@@ -126,7 +149,7 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
             
             self.targetNodes.insert(targetNode)
-            targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
+            targetNode.physicsBody?.applyForce(SCNVector3(0, -0.25, 0), asImpulse: true)
             self.sceneView.scene.rootNode.addChildNode(targetNode)
             
             i += 1
@@ -142,6 +165,7 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
         bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
                                          position.y + (originalZ - position.z) * direction.y / direction.z,
                                          originalZ)
+        bulletNode.playSound(.shoot)
         
         let bulletDirection = direction
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
@@ -152,7 +176,7 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         var bulletToRemove: [BulletNode] = []
-        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 10 {
+        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 20 {
             bulletToRemove.append(bullet)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -227,6 +251,8 @@ extension ViewController: SCNPhysicsContactDelegate {
             particleSystemNode.addParticleSystem(particleSystem!)
             particleSystemNode.position = targetNode.presentation.position
             sceneView.scene.rootNode.addChildNode(particleSystemNode)
+            
+            particleSystemNode.playSound(.hit)
             
             self.targetNodes.remove(targetNode)
             targetNode.removeFromParentNode()
