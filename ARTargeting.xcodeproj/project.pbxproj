@@ -19,6 +19,7 @@
 		24070BB1205FACAB00462C26 /* TargetNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24070BB0205FACAB00462C26 /* TargetNode.swift */; };
 		24070BB3205FAF1600462C26 /* BulletNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24070BB2205FAF1600462C26 /* BulletNode.swift */; };
 		24070BB5205FD30300462C26 /* UIColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24070BB4205FD30300462C26 /* UIColorExtension.swift */; };
+		24584BB020635A4E0017E518 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24584BAF20635A4E0017E518 /* Utilities.swift */; };
 		245C4DFB2062AFA200865440 /* ScoreNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 245C4DFA2062AFA200865440 /* ScoreNode.swift */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +38,7 @@
 		24070BB0205FACAB00462C26 /* TargetNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetNode.swift; sourceTree = "<group>"; };
 		24070BB2205FAF1600462C26 /* BulletNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BulletNode.swift; sourceTree = "<group>"; };
 		24070BB4205FD30300462C26 /* UIColorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIColorExtension.swift; sourceTree = "<group>"; };
+		24584BAF20635A4E0017E518 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		245C4DFA2062AFA200865440 /* ScoreNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreNode.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -55,7 +57,6 @@
 			isa = PBXGroup;
 			children = (
 				24070B93205F9DC200462C26 /* ARTargeting */,
-				24070B92205F9DC200462C26 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -65,6 +66,7 @@
 				24070B91205F9DC200462C26 /* ARTargeting.app */,
 			);
 			name = Products;
+			path = ..;
 			sourceTree = "<group>";
 		};
 		24070B93205F9DC200462C26 /* ARTargeting */ = {
@@ -74,8 +76,10 @@
 				24070B94205F9DC200462C26 /* AppDelegate.swift */,
 				24070B98205F9DC200462C26 /* ViewController.swift */,
 				24070BA8205F9E6000462C26 /* FrontSightView.swift */,
+				24584BAF20635A4E0017E518 /* Utilities.swift */,
 				245C4DFC2062B41500865440 /* Node */,
 				24ED94E7206245BE00E716F8 /* Extensions */,
+				24070B92205F9DC200462C26 /* Products */,
 				24070B9A205F9DC200462C26 /* Main.storyboard */,
 				24070B9D205F9DC200462C26 /* Assets.xcassets */,
 				24070B9F205F9DC200462C26 /* LaunchScreen.storyboard */,
@@ -185,6 +189,7 @@
 				24070B95205F9DC200462C26 /* AppDelegate.swift in Sources */,
 				24070BAD205FA6E500462C26 /* FloatExtension.swift in Sources */,
 				24070BB1205FACAB00462C26 /* TargetNode.swift in Sources */,
+				24584BB020635A4E0017E518 /* Utilities.swift in Sources */,
 				24070BAB205FA6BE00462C26 /* SCNVector3Extension.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

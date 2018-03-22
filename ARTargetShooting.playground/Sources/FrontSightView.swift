@@ -8,9 +8,9 @@
 
 import UIKit
 
+private let dotWidth: CGFloat = 5.0
+
 class FrontSightView: UIView {
-    
-    private let dotWidth: CGFloat = 5.0
 
     override init(frame: CGRect) {
         super.init(frame: frame)

@@ -1,17 +1,17 @@
-//
-//  ViewController.swift
-//  ARTargeting
-//
-//  Created by 宋 奎熹 on 2018/3/19.
-//  Copyright © 2018年 宋 奎熹. All rights reserved.
-//
+/*:
+ # ARTargetShooting
+ Hi! I'm Kuixi Song from Nanjing University, China. I love iOS development and this year, I made some digging into the newest `ARKit`. So I made a little target shooting game to submit for WWDC 2018. Hope you like it! 😊
+ */
 
-import UIKit
+import PlaygroundSupport
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
+let screenHeight    = UIScreen.main.bounds.height
+let screenWidth     = UIScreen.main.bounds.width
 
+class ViewController: UIViewController, ARSCNViewDelegate {
+    
     private let frontSightRadius    : CGFloat        = 25.0
     private let generationCycle     : TimeInterval   = 3.0
     
@@ -59,9 +59,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         super.viewWillAppear(animated)
         
         let configuration = ARWorldTrackingConfiguration()
-        configuration.worldAlignment = .gravity
-
-        sceneView.debugOptions = [ARSCNDebugOptions.showWorldOrigin]
+        configuration.worldAlignment = .gravityAndHeading
         
         sceneView.session.run(configuration)
         
@@ -75,10 +73,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         frontSight.center = sceneView.center
         self.view.addSubview(frontSight)
         
-//        let retryButton = UIButton(frame: CGRect(origin: CGPoint(x: 25, y: screenHeight - 50),
-//                                                 size: CGSize(width: 40, height: 40)))
-//        retryButton.setImage(#imageLiteral(resourceName: "retry"), for: .normal)
-//        self.view.addSubview(retryButton)
+        //        let retryButton = UIButton(frame: CGRect(origin: CGPoint(x: 25, y: screenHeight - 50),
+        //                                                 size: CGSize(width: 40, height: 40)))
+        //        retryButton.setImage(#imageLiteral(resourceName: "retry"), for: .normal)
+        //        self.view.addSubview(retryButton)
         
         let blurEffect = UIBlurEffect(style: .dark)
         let blurView = UIVisualEffectView(effect: blurEffect)
@@ -104,19 +102,16 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     private func generateTarget() {
-        let count = Int(arc4random() % 3) + 1
-        
-        print("Generate \(count)")
-        
+        let count = Int(arc4random() % 4)
         var i = 0
         while i < count {
             guard targetNodes.count <= 10 else {
                 return
             }
             
-            let x: Float = (Float(arc4random() % 20) / 5.0) - 2.0
+            let x: Float = 4.0
             let y: Float = (Float(arc4random() % 10) / 5.0)
-            let z: Float = -5.0
+            let z: Float = (Float(arc4random() % 10) / 5.0) - 1.0
             
             let newPosition = SCNVector3(x, y, z)
             if targetNodes.filter({ (node) -> Bool in
@@ -127,9 +122,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             
             let targetNode = TargetNode.generateTarget()
             targetNode.position = newPosition
-            targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
-            
-            print("\(i) \(targetNode.position)")
+            targetNode.rotation = SCNVector4(x: 0, y: 0, z: 1, w: .pi / 2.0)
             
             self.targetNodes.insert(targetNode)
             targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
@@ -138,18 +131,18 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             i += 1
         }
     }
-
+    
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
         let bulletNode = BulletNode()
-
+        
         let (direction, position) = getUserVector()
         
-        let originalZ: Float = -4.5
-        bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
-                                         position.y + (originalZ - position.z) * direction.y / direction.z,
-                                         originalZ)
-        bulletNode.rotation = SCNVector4(1, 0, 0, Double.pi / 2)
-
+        let originalX: Float = 3.0
+        bulletNode.position = SCNVector3(originalX,
+                                         position.y + (originalX - position.x) * direction.y / direction.x,
+                                         position.z + (originalX - position.x) * direction.z / direction.x)
+        bulletNode.rotation = SCNVector4(0, 0, 1, Double.pi / 2)
+        
         let bulletDirection = direction
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
                                            asImpulse: true)
@@ -162,22 +155,18 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 10 {
             bulletToRemove.append(bullet)
         }
-        DispatchQueue.main.async { [unowned self] in
-            bulletToRemove.forEach {
-                $0.removeFromParentNode()
-                self.bulletNodes.remove($0)
-            }
+        bulletToRemove.forEach {
+            $0.removeFromParentNode()
+            bulletNodes.remove($0)
         }
         
         var targetToRemove: [TargetNode] = []
         for target in targetNodes where target.presentation.position.y < -5 && !target.hit {
             targetToRemove.append(target)
         }
-        DispatchQueue.main.async { [unowned self] in
-            targetToRemove.forEach {
-                $0.removeFromParentNode()
-                self.targetNodes.remove($0)
-            }
+        targetToRemove.forEach {
+            $0.removeFromParentNode()
+            targetNodes.remove($0)
         }
     }
     
@@ -243,5 +232,13 @@ extension ViewController: SCNPhysicsContactDelegate {
             targetNode.removeFromParentNode()
         }
     }
-
+    
+    static func loadFromSB() -> ViewController {
+        let mainSB = UIStoryboard(name: "Main", bundle: nil)
+        let vc = mainSB.instantiateViewController(withIdentifier: "ViewController") as! ViewController
+        return vc
+    }
+    
 }
+
+PlaygroundPage.current.liveView = ViewController.loadFromSB()

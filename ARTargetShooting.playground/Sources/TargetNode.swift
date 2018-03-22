@@ -79,13 +79,13 @@ class TargetNode: SCNNode {
         let n = arc4random() % 10
         if n <= 1 {
             targetNode.type = TargetNodeType(typeNum: .high)
-            material.diffuse.contents = #imageLiteral(resourceName: "target-high")
+            material.diffuse.contents = #imageLiteral(resourceName: "target-high.png")
         } else if n >= 8 {
             targetNode.type = TargetNodeType(typeNum: .demon)
-            material.diffuse.contents = #imageLiteral(resourceName: "target-demon")
+            material.diffuse.contents = #imageLiteral(resourceName: "target-demon.png")
         } else {
             targetNode.type = TargetNodeType(typeNum: .normal)
-            material.diffuse.contents = #imageLiteral(resourceName: "target-normal")
+            material.diffuse.contents = #imageLiteral(resourceName: "target-normal.png")
         }
         targetNode.geometry?.materials = [material, material]
         
