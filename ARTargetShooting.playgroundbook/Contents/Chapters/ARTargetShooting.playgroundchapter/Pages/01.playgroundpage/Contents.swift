@@ -6,7 +6,7 @@
  After tapping the `Run my code` button, move your iPad around to initialize the `ARKit`. Once done, some targets will show up in the screen randomly. Try to find them, use the front sight (in the center of screen) to aim at these targets, and tap the screen to shoot them down!
  
  ## Notice
- * If you can not find any target, try rerun the code or take a look around you.
+ * If you can not find any target, try rerunning the code or take a look around you.
  * Targets in different colors represent different scores. Be sure to shoot the right target!
  
  ![1 point](target-normal.png "1 point") 1 point
@@ -15,13 +15,14 @@
  
  ![-5 point](target-demon.png "-5 point") -5 points
  
- Good luck!
- 
+ ## Parameters
+ Should you find this game too easy, you can change the value to a bigger one so that the targets will drop faster. (Best range: `[1, 5]`)
  */
-
-//: Should you find this game too easy, you can change the value to a bigger one so that the targets will drop faster. (Best range: `[1, 5]`)
 let gravity: UInt = 1
 
+/*:
+ **Good luck!**
+ */
 
 //#-hidden-code
 import UIKit

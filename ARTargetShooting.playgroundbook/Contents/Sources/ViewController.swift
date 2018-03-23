@@ -32,7 +32,7 @@ public class ViewController: UIViewController, ARSCNViewDelegate, PlaygroundLive
         return label
     }()
     private lazy var waitLabel: UILabel = {
-        let label = UILabel(frame: CGRect(x: 0, y: screenHeight / 2.0 - 100, width: screenWidth, height: 200))
+        let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
         label.textColor = .white
         label.text = "Move around\nyour iPad"
@@ -140,13 +140,11 @@ public class ViewController: UIViewController, ARSCNViewDelegate, PlaygroundLive
             let scoreLabelheightConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 0, constant: 100)
             self.view.addConstraints([scoreLabelleftMarginConstraint, scoreLabelrightMarginConstraint, scoreLabelheightConstraint])
             
-            
             blurViewleftMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .left, relatedBy: .equal, toItem: self.scoreLabel, attribute: .left, multiplier: 1, constant: 0)
             blurViewrightMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .right, relatedBy: .equal, toItem: self.scoreLabel, attribute: .right, multiplier: 1, constant: 0)
             blurViewtopMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .top, relatedBy: .equal, toItem: self.scoreLabel, attribute: .top, multiplier: 1, constant: 0)
             blurViewbottomMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .bottom, relatedBy: .equal, toItem: self.scoreLabel, attribute: .bottom, multiplier: 1, constant: 0)
             self.view.addConstraints([blurViewleftMarginConstraint, blurViewrightMarginConstraint, blurViewtopMarginConstraint, blurViewbottomMarginConstraint])
-            
             
             NSLayoutConstraint.activate([
                 self.scoreLabel.topAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.topAnchor)

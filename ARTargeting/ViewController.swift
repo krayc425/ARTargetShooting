@@ -38,7 +38,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         let label = UILabel(frame: CGRect(x: screenWidth / 2.0 - 150, y: screenHeight / 2.0 - 100, width: 300, height: 200))
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
         label.textColor = .white
-        label.text = "Move your\ndevice around"
+        label.text = "Move around\nyour device"
         label.textAlignment = .center
         label.numberOfLines = 2
         return label

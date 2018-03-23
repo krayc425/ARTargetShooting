@@ -6,7 +6,6 @@
 //  Copyright © 2018年 宋 奎熹. All rights reserved.
 //
 
-import Foundation
 import SceneKit
 
 extension SCNNode {

@@ -88,7 +88,9 @@ class TargetNode: SCNNode {
             targetNode.type = TargetNodeType(typeNum: .normal)
             material.diffuse.contents = UIImage(named: "target-normal")
         }
-        targetNode.geometry?.materials = [material, material]
+        let whiteMaterial = SCNMaterial()
+        whiteMaterial.diffuse.contents = UIColor.white
+        targetNode.geometry?.materials = [whiteMaterial, material, material]
         
         return targetNode
     }

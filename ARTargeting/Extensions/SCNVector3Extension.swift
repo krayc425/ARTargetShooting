@@ -6,7 +6,6 @@
 //  Copyright © 2017年 宋 奎熹. All rights reserved.
 //
 
-import Foundation
 import SceneKit
 
 extension SCNVector3 {
