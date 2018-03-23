@@ -28,11 +28,8 @@ let gravity: UInt = 1
 import UIKit
 import PlaygroundSupport
 
-let page = PlaygroundPage.current
-page.needsIndefiniteExecution = true
-let proxy = page.liveView as? PlaygroundRemoteLiveViewProxy
+let viewController = ViewController(gravityValue: gravity)
 
-proxy?.send(
-    PlaygroundMessageToLiveView.enableCameraVision.playgroundValue
-)
+PlaygroundPage.current.liveView = viewController
+PlaygroundPage.current.needsIndefiniteExecution = true
 //#-end-hidden-code
