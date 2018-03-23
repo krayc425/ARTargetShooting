@@ -7,13 +7,13 @@
  
  ## Notice
  * Your iPad should be held in landscape mode.
- * If you couldn't find any target, try rerunning the code or take a look around you.
+ * If you can not find any target, try rerun the code or take a look around you.
  * Targets in different colors represent different scores. Be sure to shoot the right target!
  
  ![1 point](target-normal.png "1 point") 1 point
  
  ![3 point](target-high.png "3 point") 3 points
-
+ 
  ![-5 point](target-demon.png "-5 point") -5 points
  
  Good luck!
@@ -23,12 +23,16 @@
 //: Should you find this game too easy, you can change the value to a bigger one so that the targets will drop faster. (Best range: `[1, 5]`)
 let gravity: UInt = 1
 
+
 //#-hidden-code
 import UIKit
 import PlaygroundSupport
 
-let viewController = ViewController(gravityValue: gravity)
-viewController.preferredContentSize = CGSize(width: screenWidth, height: screenHeight)
-PlaygroundPage.current.liveView = viewController
-PlaygroundPage.current.needsIndefiniteExecution = true
+let page = PlaygroundPage.current
+page.needsIndefiniteExecution = true
+let proxy = page.liveView as? PlaygroundRemoteLiveViewProxy
+
+proxy?.send(
+    PlaygroundMessageToLiveView.enableCameraVision.playgroundValue
+)
 //#-end-hidden-code

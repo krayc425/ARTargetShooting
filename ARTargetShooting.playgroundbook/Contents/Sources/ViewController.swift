@@ -9,8 +9,9 @@
 import UIKit
 import SceneKit
 import ARKit
+import PlaygroundSupport
 
-public class ViewController: UIViewController, ARSCNViewDelegate {
+public class ViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer {
     
     private let generationCycle     : TimeInterval   = 3.0
     
@@ -22,20 +23,22 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     private lazy var scoreLabel: UILabel = {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 80))
+        let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
         label.textColor = .white
         label.text = "0"
         label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     private lazy var waitLabel: UILabel = {
-        let label = UILabel(frame: CGRect(x: screenWidth / 2.0 - 150, y: screenHeight / 2.0 - 100, width: 300, height: 200))
+        let label = UILabel(frame: CGRect(x: 0, y: screenHeight / 2.0 - 100, width: screenWidth, height: 200))
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
         label.textColor = .white
         label.text = "Move around\nyour iPad"
         label.textAlignment = .center
         label.numberOfLines = 2
+        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
@@ -49,14 +52,14 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
             weakSelf?.generateTarget()
         }
     }()
-    
-    private var sceneView: ARSCNView = ARSCNView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight))
+
+    public var sceneView: ARSCNView = ARSCNView()
     
     private var gravity: SCNVector3 = SCNVector3(0, -1, 0)
     
     public convenience init(gravityValue: UInt) {
         self.init(nibName: nil, bundle: nil)
-        
+
         if gravityValue > 0 {
             self.gravity = SCNVector3(0, -1 * Int(gravityValue), 0)
         }
@@ -66,6 +69,15 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
         super.viewDidLoad()
         
         self.view = sceneView
+        
+        sceneView.clipsToBounds = true
+        sceneView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            sceneView.leadingAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.leadingAnchor),
+            sceneView.trailingAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.trailingAnchor),
+            sceneView.topAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.topAnchor),
+            sceneView.bottomAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.bottomAnchor)
+            ])
         
         sceneView.delegate = self
         
@@ -92,22 +104,54 @@ public class ViewController: UIViewController, ARSCNViewDelegate {
                                                       width: 50.0,
                                                       height: 50.0))
         frontSight.translatesAutoresizingMaskIntoConstraints = false
+        frontSight.alpha = 0.0
         self.view.addSubview(frontSight)
         let centerXConstraint = NSLayoutConstraint(item: frontSight, attribute: .centerX, relatedBy: .equal, toItem: self.view, attribute: .centerX, multiplier: 1, constant: 0)
         let centerYConstraint = NSLayoutConstraint(item: frontSight, attribute: .centerY, relatedBy: .equal, toItem: self.view, attribute: .centerY, multiplier: 1, constant: 0)
         self.view.addConstraints([centerXConstraint, centerYConstraint])
         
-        self.blurView.frame = self.waitLabel.frame
+        self.blurView.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(self.blurView)
         self.view.addSubview(self.waitLabel)
+        
+        let waitLabelleftMarginConstraint = NSLayoutConstraint(item: self.waitLabel, attribute: .left, relatedBy: .equal, toItem: self.view, attribute: .left, multiplier: 1, constant: 0)
+        let waitLabelrightMarginConstraint = NSLayoutConstraint(item: self.waitLabel, attribute: .right, relatedBy: .equal, toItem: self.view, attribute: .right, multiplier: 1, constant: 0)
+        let waitLabelcenterXConstraint = NSLayoutConstraint(item: self.waitLabel, attribute: .centerX, relatedBy: .equal, toItem: self.view, attribute: .centerX, multiplier: 1, constant: 0)
+        let waitLabelcenterYConstraint = NSLayoutConstraint(item: self.waitLabel, attribute: .centerY, relatedBy: .equal, toItem: self.view, attribute: .centerY, multiplier: 1, constant: 0)
+        let waitLabelheightConstraint = NSLayoutConstraint(item: self.waitLabel, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 0, constant: 200)
+        self.view.addConstraints([waitLabelleftMarginConstraint, waitLabelrightMarginConstraint, waitLabelcenterXConstraint, waitLabelcenterYConstraint, waitLabelheightConstraint])
+        
+        var blurViewleftMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .left, relatedBy: .equal, toItem: self.waitLabel, attribute: .left, multiplier: 1, constant: 0)
+        var blurViewrightMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .right, relatedBy: .equal, toItem: self.waitLabel, attribute: .right, multiplier: 1, constant: 0)
+        var blurViewtopMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .top, relatedBy: .equal, toItem: self.waitLabel, attribute: .top, multiplier: 1, constant: 0)
+        var blurViewbottomMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .bottom, relatedBy: .equal, toItem: self.waitLabel, attribute: .bottom, multiplier: 1, constant: 0)
+        self.view.addConstraints([blurViewleftMarginConstraint, blurViewrightMarginConstraint, blurViewtopMarginConstraint, blurViewbottomMarginConstraint])
         
         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
             self.waitLabel.text = "Tap to Shoot!"
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) { [unowned self] in
             self.waitLabel.removeFromSuperview()
-            self.blurView.frame = self.scoreLabel.frame
             self.view.addSubview(self.scoreLabel)
+            frontSight.alpha = 1.0
+            
+            let scoreLabelleftMarginConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .left, relatedBy: .equal, toItem: self.view, attribute: .left, multiplier: 1, constant: 0)
+            let scoreLabelrightMarginConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .right, relatedBy: .equal, toItem: self.view, attribute: .right, multiplier: 1, constant: 0)
+            let scoreLabelheightConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 0, constant: 100)
+            self.view.addConstraints([scoreLabelleftMarginConstraint, scoreLabelrightMarginConstraint, scoreLabelheightConstraint])
+            
+            
+            blurViewleftMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .left, relatedBy: .equal, toItem: self.scoreLabel, attribute: .left, multiplier: 1, constant: 0)
+            blurViewrightMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .right, relatedBy: .equal, toItem: self.scoreLabel, attribute: .right, multiplier: 1, constant: 0)
+            blurViewtopMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .top, relatedBy: .equal, toItem: self.scoreLabel, attribute: .top, multiplier: 1, constant: 0)
+            blurViewbottomMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .bottom, relatedBy: .equal, toItem: self.scoreLabel, attribute: .bottom, multiplier: 1, constant: 0)
+            self.view.addConstraints([blurViewleftMarginConstraint, blurViewrightMarginConstraint, blurViewtopMarginConstraint, blurViewbottomMarginConstraint])
+            
+            
+            NSLayoutConstraint.activate([
+                self.scoreLabel.topAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.topAnchor)
+                ])
+            
             RunLoop.main.add(self.generateTimer, forMode: .commonModes)
         }
     }

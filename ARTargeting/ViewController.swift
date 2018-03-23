@@ -54,7 +54,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }()
     
-    @IBOutlet var sceneView: ARSCNView!
+    @IBOutlet weak var sceneView: ARSCNView!
+    @IBOutlet weak var frontSight: FrontSightView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -78,13 +79,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(gestureRecognize:)))
         view.addGestureRecognizer(tapGesture)
-        
-        let frontSight = FrontSightView(frame: CGRect(x: 0,
-                                                      y: 0,
-                                                      width: frontSightRadius * 2,
-                                                      height: frontSightRadius * 2))
-        frontSight.center = sceneView.center
-        self.view.addSubview(frontSight)
         
         self.blurView.frame = self.waitLabel.frame
         self.view.addSubview(self.blurView)

@@ -13,16 +13,15 @@ class FrontSightView: UIView {
     private let dotWidth: CGFloat = 5.0
     
     private func setupViews() {
-        
-        let path = UIBezierPath(arcCenter: CGPoint(x: frame.width / 2.0, y: frame.height / 2.0),
+        let path = UIBezierPath(arcCenter: CGPoint(x: 0.0, y: 0.0),
                                 radius: frame.width / 2.0,
                                 startAngle: 0,
                                 endAngle: 2 * .pi,
                                 clockwise: true)
         path.lineWidth = 2.0
         
-        let dot = UIBezierPath(roundedRect: CGRect(x: (frame.width - dotWidth) / 2.0,
-                                                   y: (frame.width - dotWidth) / 2.0,
+        let dot = UIBezierPath(roundedRect: CGRect(x: -dotWidth / 2.0,
+                                                   y: -dotWidth / 2.0,
                                                    width: dotWidth,
                                                    height: dotWidth),
                                cornerRadius: dotWidth / 2.0)
@@ -40,7 +39,7 @@ class FrontSightView: UIView {
         dotLayer.strokeColor = UIColor.white.cgColor
         self.layer.addSublayer(dotLayer)
     }
-
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         
