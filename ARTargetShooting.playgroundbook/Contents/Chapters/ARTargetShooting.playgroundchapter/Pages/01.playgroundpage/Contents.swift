@@ -6,7 +6,6 @@
  After tapping the `Run my code` button, move your iPad around to initialize the `ARKit`. Once done, some targets will show up in the screen randomly. Try to find them, use the front sight (in the center of screen) to aim at these targets, and tap the screen to shoot them down!
  
  ## Notice
- * Your iPad should be held in landscape mode.
  * If you can not find any target, try rerun the code or take a look around you.
  * Targets in different colors represent different scores. Be sure to shoot the right target!
  
