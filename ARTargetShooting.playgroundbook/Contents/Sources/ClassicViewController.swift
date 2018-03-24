@@ -129,10 +129,10 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) { [unowned self] in
             self.waitLabel.text = "Move around\nyour iPad"
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(4)) { [unowned self] in
             self.waitLabel.text = "Tap to Shoot!"
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) { [unowned self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
             self.waitLabel.removeFromSuperview()
             self.view.addSubview(self.scoreLabel)
             frontSight.alpha = 1.0
@@ -195,7 +195,7 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
             
             self.targetNodes.insert(targetNode)
-            targetNode.physicsBody?.applyForce(SCNVector3(0, -0.25, 0), asImpulse: true)
+            targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
             self.sceneView.scene.rootNode.addChildNode(targetNode)
             
             i += 1

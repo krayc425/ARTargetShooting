@@ -10,10 +10,6 @@
 		</dict>
 		<dict>
 			<key>Content</key>
-			<string>Targets in different colors represent different scores.</string>
-		</dict>
-		<dict>
-			<key>Content</key>
 			<string>If you can not find any target, try rerunning the code or take a look around you.</string>
 		</dict>
 	</array>

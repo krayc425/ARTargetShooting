@@ -1,32 +1,28 @@
 /*:
- ## Good Job!
- You have passed the tutorial, now let's try something cool. In **Classic** mode, multiple targets will appear, and they are affected by gravity, which means that you have to shoot them as soon as possible, otherwise they will just drop on the ground.
+ ## Congratulations!
+ Finally, we reach the final page: **Arcade** mode.
  
- And from now on, **3** kinds of target will show up, so make sure that you shoot the right target!
+ Here, only the yellow target will appear. If you shoot one, it will break up into **2** smaller targets, and if you shoot the new target again, you will acquire double score!
  
- ## Target Categories
- * Targets in different colors represent different scores.
+ For example:
  
- ![1 point](target-normal.png "1 point") 1 point
+ 1. You shoot a yellow target → get 1 point
+ 2. You shoot the smaller yellow target → get 2 points
+ 3. You shoot the even smaller target → get 4 points
+ 4. ...
  
- ![3 point](target-high.png "3 point") 3 points
- 
- ![-5 point](target-demon.png "-5 point") -5 points
+ Isn't it exciting?!
  
  ## Parameters
  Should you find this game too easy, you can change the value to a bigger one so that the targets will drop faster. (Best range: `[1, 5]`)
  */
 let gravity: UInt = 1
 
-/*:
- **Good luck!**
- */
-
 //#-hidden-code
 import UIKit
 import PlaygroundSupport
 
-let viewController = ClassicViewController(gravityValue: gravity)
+let viewController = ArcadeViewController(gravityValue: gravity)
 
 PlaygroundPage.current.liveView = viewController
 PlaygroundPage.current.needsIndefiniteExecution = true

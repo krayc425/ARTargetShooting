@@ -21,6 +21,19 @@ enum TargetNodeTypeNum: Int {
     case normal
     case high
     case demon
+    
+    func getUIImageName() -> String {
+        var str = ""
+        switch self {
+        case .normal:
+            str = "normal"
+        case .high:
+            str = "high"
+        case .demon:
+            str = "demon"
+        }
+        return "target-\(str)"
+    }
 }
 
 struct TargetNodeType {
@@ -46,13 +59,15 @@ struct TargetNodeType {
 
 class TargetNode: SCNNode {
 
+    var radius: CGFloat = targetRadius
     var type: TargetNodeType?
     var hit: Bool = false
     var hitScore: Int {
         get {
-            return hit ? 0 : (type?.score ?? 0)
+            return hit ? 0 : (type?.score ?? 0) * scoreMultiple
         }
     }
+    var scoreMultiple: Int = 1
     
     override init() {
         super.init()
@@ -95,7 +110,7 @@ class TargetNode: SCNNode {
         return targetNode
     }
     
-    static func getTutorialTarget() -> TargetNode {
+    static func getSingleTarget(isTutorial: Bool) -> TargetNode {
         let targetNode = TargetNode()
         
         let cylinder = SCNCylinder(radius: targetRadius, height: targetRadius / 10.0)
@@ -103,7 +118,7 @@ class TargetNode: SCNNode {
         
         let shape = SCNPhysicsShape(geometry: cylinder, options: nil)
         targetNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: shape)
-        targetNode.physicsBody?.isAffectedByGravity = false
+        targetNode.physicsBody?.isAffectedByGravity = !isTutorial
         targetNode.physicsBody?.mass = 0.15
         
         targetNode.physicsBody?.categoryBitMask = CollisionCategory.target.rawValue
@@ -118,7 +133,34 @@ class TargetNode: SCNNode {
         targetNode.geometry?.materials = [whiteMaterial, material, material]
         
         return targetNode
+    }
+    
+    static func generateSmallTarget(oldTarget: TargetNode) -> TargetNode {
+        let newRadius = oldTarget.radius * 0.8
+        let targetNode = TargetNode()
         
+        let cylinder = SCNCylinder(radius: newRadius, height: targetRadius / 10.0)
+        targetNode.geometry = cylinder
+        
+        let shape = SCNPhysicsShape(geometry: cylinder, options: nil)
+        targetNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: shape)
+        targetNode.physicsBody?.isAffectedByGravity = true
+        targetNode.physicsBody?.mass = 0.15
+        
+        targetNode.physicsBody?.categoryBitMask = CollisionCategory.target.rawValue
+        targetNode.physicsBody?.contactTestBitMask = CollisionCategory.bullet.rawValue
+        
+        let material = SCNMaterial()
+        targetNode.type = oldTarget.type!
+        material.diffuse.contents = UIImage(named: oldTarget.type!.typeNum.getUIImageName())
+        let whiteMaterial = SCNMaterial()
+        whiteMaterial.diffuse.contents = UIColor.white
+        targetNode.geometry?.materials = [whiteMaterial, material, material]
+        
+        targetNode.radius = newRadius
+        targetNode.scoreMultiple = oldTarget.scoreMultiple * 2
+        
+        return targetNode
     }
     
 }
