@@ -95,4 +95,30 @@ class TargetNode: SCNNode {
         return targetNode
     }
     
+    static func getTutorialTarget() -> TargetNode {
+        let targetNode = TargetNode()
+        
+        let cylinder = SCNCylinder(radius: targetRadius, height: targetRadius / 10.0)
+        targetNode.geometry = cylinder
+        
+        let shape = SCNPhysicsShape(geometry: cylinder, options: nil)
+        targetNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: shape)
+        targetNode.physicsBody?.isAffectedByGravity = false
+        targetNode.physicsBody?.mass = 0.15
+        
+        targetNode.physicsBody?.categoryBitMask = CollisionCategory.target.rawValue
+        targetNode.physicsBody?.contactTestBitMask = CollisionCategory.bullet.rawValue
+        
+        targetNode.type = TargetNodeType(typeNum: .normal)
+        
+        let material = SCNMaterial()
+        material.diffuse.contents = UIImage(named: "target-normal")
+        let whiteMaterial = SCNMaterial()
+        whiteMaterial.diffuse.contents = UIColor.white
+        targetNode.geometry?.materials = [whiteMaterial, material, material]
+        
+        return targetNode
+        
+    }
+    
 }

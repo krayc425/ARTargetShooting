@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Hints</key>
+	<array>
+		<dict>
+			<key>Content</key>
+			<string>Use the front sight to aim at the target, and tap the screen to shoot it.</string>
+		</dict>
+		<dict>
+			<key>Content</key>
+			<string>Targets in different colors represent different scores.</string>
+		</dict>
+		<dict>
+			<key>Content</key>
+			<string>If you can not find any target, try rerunning the code or take a look around you.</string>
+		</dict>
+	</array>
+</dict>
+</plist>
