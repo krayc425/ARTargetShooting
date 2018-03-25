@@ -10,14 +10,14 @@ import UIKit
 import SceneKit
 import PlaygroundSupport
 
-let targetRadius: CGFloat = 0.2
+public let targetRadius: CGFloat = 0.2
 
-enum CollisionCategory: Int {
+public enum CollisionCategory: Int {
     case bullet = 1
     case target = 2
 }
 
-enum TargetNodeTypeNum: Int {
+public enum TargetNodeTypeNum: Int {
     case normal
     case high
     case demon
@@ -36,7 +36,7 @@ enum TargetNodeTypeNum: Int {
     }
 }
 
-struct TargetNodeType {
+public struct TargetNodeType {
     var score: Int = 1
     var color: UIColor = .normal
     var typeNum: TargetNodeTypeNum = .normal
@@ -57,27 +57,32 @@ struct TargetNodeType {
     }
 }
 
-class TargetNode: SCNNode {
+public class TargetNode: SCNNode {
 
-    var radius: CGFloat = targetRadius
-    var type: TargetNodeType?
-    var hit: Bool = false
-    var hitScore: Int {
+    public var type: TargetNodeType?
+    public var hit: Bool = false
+    public var hitScore: Int {
         get {
             return hit ? 0 : (type?.score ?? 0) * scoreMultiple
         }
     }
+    public var typeColor: UIColor {
+        get {
+            return type?.color ?? UIColor.clear
+        }
+    }
+    var radius: CGFloat = targetRadius
     var scoreMultiple: Int = 1
     
-    override init() {
+    public override init() {
         super.init()
     }
     
-    required init?(coder aDecoder: NSCoder) {
+    public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    static func generateTarget() -> TargetNode {
+    public static func generateTarget() -> TargetNode {
         let targetNode = TargetNode()
         
         let cylinder = SCNCylinder(radius: targetRadius, height: targetRadius / 10.0)
@@ -110,7 +115,7 @@ class TargetNode: SCNNode {
         return targetNode
     }
     
-    static func getSingleTarget(isTutorial: Bool) -> TargetNode {
+    public static func getSingleTarget(isTutorial: Bool) -> TargetNode {
         let targetNode = TargetNode()
         
         let cylinder = SCNCylinder(radius: targetRadius, height: targetRadius / 10.0)
@@ -135,7 +140,7 @@ class TargetNode: SCNNode {
         return targetNode
     }
     
-    static func generateSmallTarget(oldTarget: TargetNode) -> TargetNode {
+    public static func generateSmallTarget(oldTarget: TargetNode) -> TargetNode {
         let newRadius = oldTarget.radius * 0.8
         let targetNode = TargetNode()
         

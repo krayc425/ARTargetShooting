@@ -1,15 +1,15 @@
 //
 //  SCNVector3Extension.swift
-//  PediAR
+//  ARTargeting
 //
-//  Created by 宋 奎熹 on 2017/11/4.
-//  Copyright © 2017年 宋 奎熹. All rights reserved.
+//  Created by 宋 奎熹 on 2018/3/22.
+//  Copyright © 2018年 宋 奎熹. All rights reserved.
 //
 
 import Foundation
 import SceneKit
 
-extension SCNVector3 {
+public extension SCNVector3 {
     
     static var zero: SCNVector3 {
         return SCNVector3(0, 0, 0)

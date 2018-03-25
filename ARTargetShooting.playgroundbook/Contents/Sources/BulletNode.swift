@@ -9,11 +9,11 @@
 import UIKit
 import SceneKit
 
-let bulletRadius: CGFloat = 0.075
+public let bulletRadius: CGFloat = 0.075
 
-class BulletNode: SCNNode {
+public class BulletNode: SCNNode {
     
-    override init() {
+    public override init() {
         super.init()
         
         let sphere = SCNSphere(radius: bulletRadius)
@@ -32,7 +32,7 @@ class BulletNode: SCNNode {
         self.geometry?.materials = [material]
     }
     
-    required init?(coder aDecoder: NSCoder) {
+    public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     

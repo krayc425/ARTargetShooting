@@ -8,38 +8,33 @@
 
 import Foundation
 import SceneKit
+import AudioToolbox
 
-enum SoundType: String {
+public enum SoundType: String {
     case shoot
     case hit
 }
 
-class SoundHelper: NSObject {
+public class SoundHelper: NSObject {
     
-    static let shared: SoundHelper = SoundHelper()
+    public static let shared: SoundHelper = SoundHelper()
     
-    private var soundCache: [SoundType: SCNAudioSource] = [:]
+    private var soundIds: [SoundType: SystemSoundID] = [:]
     
     private override init() {
-        
-    }
-    
-    func loadSound(of type: SoundType) -> SCNAudioSource {
-        if let sound = soundCache[type] {
-            return sound
-        } else {
-            let sound = SCNAudioSource(fileNamed: type.rawValue + ".mp3")!
-            soundCache[type] = sound
-            sound.load()
+        for type in [SoundType.hit, SoundType.shoot] {
+            var soundID: SystemSoundID = 0
+            let path = Bundle.main.path(forResource: type.rawValue, ofType: "mp3")
+            let baseURL = NSURL(fileURLWithPath: path!)
+            AudioServicesCreateSystemSoundID(baseURL, &soundID)
             
-            switch type {
-            case .hit:
-                sound.volume = 1.0
-            case .shoot:
-                sound.volume = 0.85
-            }
-            return sound
+            soundIds[type] = soundID
         }
     }
     
+    public func playSound(of type: SoundType) {
+        AudioServicesPlaySystemSound(soundIds[type]!)
+    }
+    
 }
+

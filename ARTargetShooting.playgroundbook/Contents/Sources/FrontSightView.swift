@@ -8,7 +8,7 @@
 
 import UIKit
 
-class FrontSightView: UIView {
+public class FrontSightView: UIView {
     
     private let dotWidth: CGFloat = 5.0
     
@@ -40,13 +40,13 @@ class FrontSightView: UIView {
         self.layer.addSublayer(dotLayer)
     }
     
-    override init(frame: CGRect) {
+    public override init(frame: CGRect) {
         super.init(frame: frame)
         
         setupViews()
     }
     
-    required init?(coder aDecoder: NSCoder) {
+    public required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         
         setupViews()

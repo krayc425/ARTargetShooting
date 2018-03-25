@@ -8,7 +8,7 @@
 
 import UIKit
 
-extension UIColor {
+public extension UIColor {
     
     static var normal: UIColor {
         return UIColor(red: 244.0 / 255.0, green: 234.0 / 255.0, blue: 42.0 / 255.0, alpha: 1.0)

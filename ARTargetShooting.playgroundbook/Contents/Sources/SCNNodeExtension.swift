@@ -9,10 +9,10 @@
 import Foundation
 import SceneKit
 
-extension SCNNode {
+public extension SCNNode {
     
     func playSound(_ type: SoundType) {
-        self.runAction(SCNAction.playAudio(SoundHelper.shared.loadSound(of: type), waitForCompletion: false))
+        SoundHelper.shared.playSound(of: type)
     }
     
 }

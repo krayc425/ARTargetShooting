@@ -292,7 +292,7 @@ extension ClassicViewController: SCNPhysicsContactDelegate {
             targetNode.hit = true
             
             let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
-            particleSystem?.particleColor = targetNode.type?.color ?? .clear
+            particleSystem?.particleColor = targetNode.typeColor
             let particleSystemNode = SCNNode()
             particleSystemNode.addParticleSystem(particleSystem!)
             particleSystemNode.position = targetNode.presentation.position

@@ -1,5 +1,5 @@
 //
-//  TutorialViewController.swift
+//  ArcadeViewController.swift
 //  ARTargeting
 //
 //  Created by 宋 奎熹 on 2018/3/19.
@@ -11,8 +11,26 @@ import SceneKit
 import ARKit
 import PlaygroundSupport
 
-public class TutorialViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer {
+public class ArcadeViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer {
     
+    private let generationCycle     : TimeInterval   = 5.0
+    
+    private var currentScore: Int = 0 {
+        didSet {
+            DispatchQueue.main.async { [unowned self] in
+                self.scoreLabel.text = "\(self.currentScore)"
+            }
+        }
+    }
+    private lazy var scoreLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
+        label.textColor = .white
+        label.text = "0"
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
     private lazy var waitLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
@@ -24,19 +42,27 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     }()
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
-    private lazy var targetNode: TargetNode = {
-        let node = TargetNode.getSingleTarget(isTutorial: true)
-        node.position = SCNVector3(0, 0, -5)
-        node.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
-        return node
-    }()
+    private var targetNodes = Set<TargetNode>()
     private var bulletNodes = Set<BulletNode>()
     
+    private lazy var generateTimer: Timer = {
+        weak var weakSelf = self
+        return Timer(timeInterval: generationCycle, repeats: true) { _ in
+            weakSelf?.generateTarget()
+        }
+    }()
+
     public var sceneView: ARSCNView = ARSCNView()
     
     private var gravity: SCNVector3 = SCNVector3(0, -1, 0)
     
-    fileprivate var doneTutorial: Bool = false
+    public convenience init(gravityValue: UInt) {
+        self.init(nibName: nil, bundle: nil)
+
+        if gravityValue > 0 {
+            self.gravity = SCNVector3(0, -1 * Int(gravityValue), 0)
+        }
+    }
     
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -72,10 +98,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(gestureRecognize:)))
         self.view.addGestureRecognizer(tapGesture)
         
-        let frontSight = FrontSightView(frame: CGRect(x: 0,
-                                                      y: 0,
-                                                      width: 50.0,
-                                                      height: 50.0))
+        let frontSight = FrontSightView(frame: CGRect(x: 0, y: 0, width: 50.0, height: 50.0))
         frontSight.translatesAutoresizingMaskIntoConstraints = false
         frontSight.alpha = 0.0
         self.view.addSubview(frontSight)
@@ -103,14 +126,30 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) { [unowned self] in
             self.waitLabel.text = "Move around\nyour iPad"
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(4)) { [unowned self] in
             self.waitLabel.text = "Tap to Shoot!"
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) { [unowned self] in
-            self.waitLabel.isHidden = true
-            self.blurView.isHidden = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
+            self.waitLabel.removeFromSuperview()
+            self.view.addSubview(self.scoreLabel)
             frontSight.alpha = 1.0
-            self.sceneView.scene.rootNode.addChildNode(self.targetNode)
+            
+            let scoreLabelleftMarginConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .left, relatedBy: .equal, toItem: self.view, attribute: .left, multiplier: 1, constant: 0)
+            let scoreLabelrightMarginConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .right, relatedBy: .equal, toItem: self.view, attribute: .right, multiplier: 1, constant: 0)
+            let scoreLabelheightConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 0, constant: 100)
+            self.view.addConstraints([scoreLabelleftMarginConstraint, scoreLabelrightMarginConstraint, scoreLabelheightConstraint])
+            
+            blurViewleftMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .left, relatedBy: .equal, toItem: self.scoreLabel, attribute: .left, multiplier: 1, constant: 0)
+            blurViewrightMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .right, relatedBy: .equal, toItem: self.scoreLabel, attribute: .right, multiplier: 1, constant: 0)
+            blurViewtopMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .top, relatedBy: .equal, toItem: self.scoreLabel, attribute: .top, multiplier: 1, constant: 0)
+            blurViewbottomMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .bottom, relatedBy: .equal, toItem: self.scoreLabel, attribute: .bottom, multiplier: 1, constant: 0)
+            self.view.addConstraints([blurViewleftMarginConstraint, blurViewrightMarginConstraint, blurViewtopMarginConstraint, blurViewbottomMarginConstraint])
+            
+            NSLayoutConstraint.activate([
+                self.scoreLabel.topAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.topAnchor)
+                ])
+            
+            RunLoop.main.add(self.generateTimer, forMode: .commonModes)
         }
     }
     
@@ -120,8 +159,42 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         sceneView.session.pause()
     }
     
+    deinit {
+        generateTimer.invalidate()
+    }
+    
     public override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
+    }
+    
+    private func generateTarget() {
+        let x: Float = (Float(arc4random() % 20) / 5.0) - 2.0
+        let y: Float = (Float(arc4random() % 10) / 5.0) + 0.5
+        let z: Float = -5.0
+        
+        let newPosition = SCNVector3(x, y, z)
+        
+        let targetNode = TargetNode.getSingleTarget(isTutorial: false)
+        targetNode.position = newPosition
+        targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
+        
+        self.targetNodes.insert(targetNode)
+        targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
+        self.sceneView.scene.rootNode.addChildNode(targetNode)
+    }
+    
+    fileprivate func generateSmallTarget(oldTarget: TargetNode) {
+        let oldPosition = oldTarget.presentation.position
+        
+        for i in 0...1 {
+            let targetNode = TargetNode.generateSmallTarget(oldTarget: oldTarget)
+            targetNode.position = oldPosition
+            targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
+        
+            self.targetNodes.insert(targetNode)
+            targetNode.physicsBody?.applyForce(SCNVector3((0.5 - Double(i)) * 0.5, drand48() - 0.5, 0.0), asImpulse: true)
+            self.sceneView.scene.rootNode.addChildNode(targetNode)
+        }
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
@@ -154,13 +227,15 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
             }
         }
         
-        if doneTutorial && self.blurView.isHidden && self.waitLabel.isHidden {
-            self.blurView.isHidden = false
-            self.waitLabel.isHidden = false
-            self.waitLabel.text = "Good Job!\nTap 'Next Page' on the left to go on."
-            
-            self.sceneView.bringSubview(toFront: self.blurView)
-            self.sceneView.bringSubview(toFront: self.waitLabel)
+        var targetToRemove: [TargetNode] = []
+        for target in targetNodes where target.presentation.position.y < -5 && !target.hit {
+            targetToRemove.append(target)
+        }
+        DispatchQueue.main.async { [unowned self] in
+            targetToRemove.forEach {
+                $0.removeFromParentNode()
+                self.targetNodes.remove($0)
+            }
         }
     }
     
@@ -191,29 +266,39 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     
 }
 
-extension TutorialViewController: SCNPhysicsContactDelegate {
+extension ArcadeViewController: SCNPhysicsContactDelegate {
     
     public func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
         if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
             || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
             
-            var node: TargetNode = TargetNode()
+            var targetNode: TargetNode = TargetNode()
+            var bulletNode: BulletNode = BulletNode()
             if contact.nodeA is TargetNode {
-                node = contact.nodeA as! TargetNode
+                targetNode = contact.nodeA as! TargetNode
+                bulletNode = contact.nodeB as! BulletNode
             } else {
-                node = contact.nodeB as! TargetNode
+                bulletNode = contact.nodeA as! BulletNode
+                targetNode = contact.nodeB as! TargetNode
             }
             
-            guard !node.hit else {
+            guard !targetNode.hit else {
                 return
             }
             
-            self.doneTutorial = true
-        
-            node.removeFromParentNode()
+            currentScore += targetNode.hitScore
+            targetNode.hit = true
+            
+            self.bulletNodes.remove(bulletNode)
+            bulletNode.removeFromParentNode()
+            
+            self.generateSmallTarget(oldTarget: targetNode)
+            
+            self.targetNodes.remove(targetNode)
+            targetNode.removeFromParentNode()
             
             let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
-            particleSystem?.particleColor = targetNode.type?.color ?? .clear
+            particleSystem?.particleColor = targetNode.typeColor
             let particleSystemNode = SCNNode()
             particleSystemNode.addParticleSystem(particleSystem!)
             particleSystemNode.position = targetNode.presentation.position
