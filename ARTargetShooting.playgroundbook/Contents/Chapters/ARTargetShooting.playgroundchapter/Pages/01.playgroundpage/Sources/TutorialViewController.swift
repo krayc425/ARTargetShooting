@@ -40,6 +40,9 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         didSet {
             if doneTutorial {
                 PlaygroundPage.current.assessmentStatus = .pass(message: "**Good Job!🎉** You've shot your first target down! Now let's go to the [**Next Page**](@next) and try something cool.")
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) { [unowned self] in
+                    self.playSound(.success)
+                }
             }
         }
     }
@@ -117,6 +120,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
             self.blurView.isHidden = true
             frontSight.alpha = 1.0
             self.sceneView.scene.rootNode.addChildNode(self.targetNode)
+            self.playSound(.appear)
         }
     }
     
@@ -139,7 +143,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
                                          position.y + (originalZ - position.z) * direction.y / direction.z,
                                          originalZ)
-        bulletNode.playSound(.shoot)
+        playSound(.shoot)
         
         let bulletDirection = direction
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
@@ -216,7 +220,7 @@ extension TutorialViewController: SCNPhysicsContactDelegate {
             particleSystemNode.position = targetNode.presentation.position
             sceneView.scene.rootNode.addChildNode(particleSystemNode)
             
-            particleSystemNode.playSound(.hit)
+            playSound(.hit)
         }
     }
     

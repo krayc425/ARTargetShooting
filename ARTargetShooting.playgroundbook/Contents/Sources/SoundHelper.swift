@@ -13,6 +13,8 @@ import AudioToolbox
 public enum SoundType: String {
     case shoot
     case hit
+    case success
+    case appear
 }
 
 public class SoundHelper: NSObject {
@@ -22,7 +24,7 @@ public class SoundHelper: NSObject {
     private var soundIds: [SoundType: SystemSoundID] = [:]
     
     private override init() {
-        for type in [SoundType.hit, SoundType.shoot] {
+        for type in [SoundType.hit, SoundType.shoot, SoundType.success, SoundType.appear] {
             var soundID: SystemSoundID = 0
             let path = Bundle.main.path(forResource: type.rawValue, ofType: "mp3")
             let baseURL = NSURL(fileURLWithPath: path!)

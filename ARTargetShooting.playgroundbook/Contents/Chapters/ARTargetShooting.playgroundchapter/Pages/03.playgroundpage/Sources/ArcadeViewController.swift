@@ -15,10 +15,13 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     
     private let generationCycle     : TimeInterval   = 5.0
     
+    private var hasSucceeded: Bool = false
     private var currentScore: Int = 0 {
         didSet {
-            if currentScore >= 100 {
+            if !hasSucceeded && currentScore >= 100 {
+                hasSucceeded = true
                 PlaygroundPage.current.assessmentStatus = .pass(message: "You've got **100** points in **Arcade** mode! Now please just have fun shooting targets down!😆")
+                playSound(.success)
             }
             DispatchQueue.main.async { [unowned self] in
                 self.scoreLabel.text = "\(self.currentScore)"
@@ -183,6 +186,8 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         self.targetNodes.insert(targetNode)
         targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
         self.sceneView.scene.rootNode.addChildNode(targetNode)
+        
+        playSound(.appear)
     }
     
     fileprivate func generateSmallTarget(oldTarget: TargetNode) {
@@ -208,7 +213,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
                                          position.y + (originalZ - position.z) * direction.y / direction.z,
                                          originalZ)
-        bulletNode.playSound(.shoot)
+        playSound(.shoot)
         
         let bulletDirection = direction
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
@@ -297,7 +302,7 @@ extension ArcadeViewController: SCNPhysicsContactDelegate {
             particleSystemNode.position = targetNode.presentation.position
             sceneView.scene.rootNode.addChildNode(particleSystemNode)
             
-            particleSystemNode.playSound(.hit)
+            playSound(.hit)
         }
     }
     

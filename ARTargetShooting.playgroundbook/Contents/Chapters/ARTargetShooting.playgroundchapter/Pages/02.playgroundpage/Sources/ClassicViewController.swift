@@ -15,10 +15,13 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     
     private let generationCycle     : TimeInterval   = 3.0
     
+    private var hasSucceeded: Bool = false
     private var currentScore: Int = 0 {
         didSet {
-            if currentScore >= 30 {
+            if !hasSucceeded && currentScore >= 30 {
+                hasSucceeded = true
                 PlaygroundPage.current.assessmentStatus = .pass(message: "You've got **30** points in **Classic** mode! It seems that you have mastered your shooting skill. Do you want more? 😏 Go to the [**Next Page**](@next)!")
+                playSound(.success)
             }
             DispatchQueue.main.async { [unowned self] in
                 self.scoreLabel.text = "\(self.currentScore)"
@@ -200,6 +203,10 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
             targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
             self.sceneView.scene.rootNode.addChildNode(targetNode)
             
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(i * 100)) { [unowned self] in
+                self.playSound(.appear)
+            }
+            
             i += 1
         }
     }
@@ -213,7 +220,7 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
                                          position.y + (originalZ - position.z) * direction.y / direction.z,
                                          originalZ)
-        bulletNode.playSound(.shoot)
+        playSound(.shoot)
         
         let bulletDirection = direction
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
@@ -272,9 +279,12 @@ extension ClassicViewController: SCNPhysicsContactDelegate {
             || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
             
             var targetNode: TargetNode = TargetNode()
+            var bulletNode: BulletNode = BulletNode()
             if contact.nodeA is TargetNode {
                 targetNode = contact.nodeA as! TargetNode
+                bulletNode = contact.nodeB as! BulletNode
             } else {
+                bulletNode = contact.nodeA as! BulletNode
                 targetNode = contact.nodeB as! TargetNode
             }
             
@@ -294,7 +304,7 @@ extension ClassicViewController: SCNPhysicsContactDelegate {
             particleSystemNode.position = targetNode.presentation.position
             sceneView.scene.rootNode.addChildNode(particleSystemNode)
             
-            particleSystemNode.playSound(.hit)
+            playSound(.hit)
             
             self.targetNodes.remove(targetNode)
             targetNode.removeFromParentNode()
