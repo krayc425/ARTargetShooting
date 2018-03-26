@@ -1,17 +1,26 @@
 /*:
- ## Good Job!
- You have passed the tutorial, now let's try something cool. In **Classic** mode, multiple targets will appear, and they are affected by gravity, which means that you have to shoot them as soon as possible, otherwise they will just drop on the ground.
+ # Classic Mode
  
- And from now on, **3** kinds of target will show up, so make sure that you shoot the right target!
+ # Goal: Get **30** points in **Classic** mode!
  
- ## Target Categories
- * Targets in different colors represent different scores.
+ You have passed the tutorial, now let's try something cool. In **Classic** mode, multiple targets will appear randomly, and they are affected by gravity, which means that you have to shoot them as soon as possible, otherwise they will drop on the ground.
  
- ![1 point](target-normal.png "1 point") 1 point
+ In **Classic** mode, **3** kind of targets will show up, and make sure that you shoot the right target!
  
- ![3 point](target-high.png "3 point") 3 points
+ ## Targets
+ Targets in different colors represent different scores.
  
- ![-5 point](target-demon.png "-5 point") -5 points
+ #### 1 point
+ 
+ ![1 point](target-normal.png "1 point")
+ 
+ #### 3 points
+ 
+ ![3 point](target-high.png "3 point")
+ 
+ #### -5 points
+ 
+ ![-5 point](target-demon.png "-5 point")
  
  ## Parameters
  Should you find this game too easy, you can change the value to a bigger one so that the targets will drop faster. (Best range: `[1, 5]`)

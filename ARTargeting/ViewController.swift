@@ -45,7 +45,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }()
     
     private var targetNodes = Set<TargetNode>()
-    private var bulletNodes = Set<BulletNode>()
     
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
@@ -157,19 +156,11 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                                            asImpulse: true)
         bulletNode.playSound(.shoot)
         sceneView.scene.rootNode.addChildNode(bulletNode)
-        bulletNodes.insert(bulletNode)
     }
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        var bulletToRemove: [BulletNode] = []
-        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 20 {
-            bulletToRemove.append(bullet)
-        }
-        DispatchQueue.main.async { [unowned self] in
-            bulletToRemove.forEach {
-                $0.removeFromParentNode()
-                self.bulletNodes.remove($0)
-            }
+        for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
+            node.removeFromParentNode()
         }
         
         var targetToRemove: [TargetNode] = []

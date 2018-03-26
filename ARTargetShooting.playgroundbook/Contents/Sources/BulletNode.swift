@@ -13,6 +13,8 @@ public let bulletRadius: CGFloat = 0.075
 
 public class BulletNode: SCNNode {
     
+    public var hit: Bool = false
+    
     public override init() {
         super.init()
         

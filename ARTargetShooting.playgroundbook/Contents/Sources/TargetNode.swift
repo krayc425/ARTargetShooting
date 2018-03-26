@@ -85,7 +85,7 @@ public class TargetNode: SCNNode {
     public static func generateTarget() -> TargetNode {
         let targetNode = TargetNode()
         
-        let cylinder = SCNCylinder(radius: targetRadius, height: targetRadius / 10.0)
+        let cylinder = SCNCylinder(radius: CGFloat(arc4random() % 10) / 50.0 + 0.1, height: targetRadius / 10.0)
         targetNode.geometry = cylinder
         
         let shape = SCNPhysicsShape(geometry: cylinder, options: nil)
@@ -141,7 +141,7 @@ public class TargetNode: SCNNode {
     }
     
     public static func generateSmallTarget(oldTarget: TargetNode) -> TargetNode {
-        let newRadius = oldTarget.radius * 0.8
+        let newRadius = oldTarget.radius * 0.85
         let targetNode = TargetNode()
         
         let cylinder = SCNCylinder(radius: newRadius, height: targetRadius / 10.0)
@@ -156,8 +156,19 @@ public class TargetNode: SCNNode {
         targetNode.physicsBody?.contactTestBitMask = CollisionCategory.bullet.rawValue
         
         let material = SCNMaterial()
-        targetNode.type = oldTarget.type!
-        material.diffuse.contents = UIImage(named: oldTarget.type!.typeNum.getUIImageName())
+        
+        let n = arc4random() % 10
+        if n <= 2 {
+            targetNode.type = TargetNodeType(typeNum: .high)
+            material.diffuse.contents = UIImage(named: "target-high")
+        } else if n >= 7 {
+            targetNode.type = TargetNodeType(typeNum: .demon)
+            material.diffuse.contents = UIImage(named: "target-demon")
+        } else {
+            targetNode.type = TargetNodeType(typeNum: .normal)
+            material.diffuse.contents = UIImage(named: "target-normal")
+        }
+        
         let whiteMaterial = SCNMaterial()
         whiteMaterial.diffuse.contents = UIColor.white
         targetNode.geometry?.materials = [whiteMaterial, material, material]

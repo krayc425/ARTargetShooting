@@ -17,6 +17,9 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     
     private var currentScore: Int = 0 {
         didSet {
+            if currentScore >= 30 {
+                PlaygroundPage.current.assessmentStatus = .pass(message: "You've got **30** points in **Classic** mode! It seems that you have mastered your shooting skill. Do you want more? 😏 Go to the [**Next Page**](@next)!")
+            }
             DispatchQueue.main.async { [unowned self] in
                 self.scoreLabel.text = "\(self.currentScore)"
             }
@@ -43,7 +46,6 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
     private var targetNodes = Set<TargetNode>()
-    private var bulletNodes = Set<BulletNode>()
     
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
@@ -217,19 +219,11 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
                                            asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
-        bulletNodes.insert(bulletNode)
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        var bulletToRemove: [BulletNode] = []
-        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 20 {
-            bulletToRemove.append(bullet)
-        }
-        DispatchQueue.main.async { [unowned self] in
-            bulletToRemove.forEach {
-                $0.removeFromParentNode()
-                self.bulletNodes.remove($0)
-            }
+        for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
+            node.removeFromParentNode()
         }
         
         var targetToRemove: [TargetNode] = []
@@ -284,12 +278,14 @@ extension ClassicViewController: SCNPhysicsContactDelegate {
                 targetNode = contact.nodeB as! TargetNode
             }
             
-            guard !targetNode.hit else {
+            guard !targetNode.hit && !bulletNode.hit else {
                 return
             }
             
             currentScore += targetNode.hitScore
+            
             targetNode.hit = true
+            bulletNode.hit = true
             
             let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
             particleSystem?.particleColor = targetNode.typeColor

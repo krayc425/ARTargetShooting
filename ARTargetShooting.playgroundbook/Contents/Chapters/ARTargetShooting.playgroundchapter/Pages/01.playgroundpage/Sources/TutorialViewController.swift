@@ -36,7 +36,13 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     
     private var gravity: SCNVector3 = SCNVector3(0, -1, 0)
     
-    fileprivate var doneTutorial: Bool = false
+    fileprivate var doneTutorial: Bool = false {
+        didSet {
+            if doneTutorial {
+                PlaygroundPage.current.assessmentStatus = .pass(message: "**Good Job!🎉** You've shot your first target down! Now let's go to the [**Next Page**](@next) and try something cool.")
+            }
+        }
+    }
     
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -152,15 +158,6 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
                 $0.removeFromParentNode()
                 self.bulletNodes.remove($0)
             }
-        }
-        
-        if doneTutorial && self.blurView.isHidden && self.waitLabel.isHidden {
-            self.blurView.isHidden = false
-            self.waitLabel.isHidden = false
-            self.waitLabel.text = "Good Job!\nTap 'Next Page' on the left to go on."
-            
-            self.sceneView.bringSubview(toFront: self.blurView)
-            self.sceneView.bringSubview(toFront: self.waitLabel)
         }
     }
     
