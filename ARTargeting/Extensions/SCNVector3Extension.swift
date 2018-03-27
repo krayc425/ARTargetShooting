@@ -20,4 +20,10 @@ extension SCNVector3 {
             + (self.z - anotherVector.z).squared).squareRoot()
     }
     
+    var length: Float {
+        get {
+            return Float(sqrt(self.x.squared + self.y.squared + self.z.squared))
+        }
+    }
+    
 }

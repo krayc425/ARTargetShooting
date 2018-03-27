@@ -109,7 +109,7 @@ public class TargetNode: SCNNode {
             material.diffuse.contents = UIImage(named: "target-normal")
         }
         let whiteMaterial = SCNMaterial()
-        whiteMaterial.diffuse.contents = UIColor.white
+        whiteMaterial.diffuse.contents = targetNode.typeColor
         targetNode.geometry?.materials = [whiteMaterial, material, material]
         
         return targetNode
@@ -134,7 +134,7 @@ public class TargetNode: SCNNode {
         let material = SCNMaterial()
         material.diffuse.contents = UIImage(named: "target-normal")
         let whiteMaterial = SCNMaterial()
-        whiteMaterial.diffuse.contents = UIColor.white
+        whiteMaterial.diffuse.contents = targetNode.typeColor
         targetNode.geometry?.materials = [whiteMaterial, material, material]
         
         return targetNode
@@ -170,7 +170,7 @@ public class TargetNode: SCNNode {
         }
         
         let whiteMaterial = SCNMaterial()
-        whiteMaterial.diffuse.contents = UIColor.white
+        whiteMaterial.diffuse.contents = targetNode.typeColor
         targetNode.geometry?.materials = [whiteMaterial, material, material]
         
         targetNode.radius = newRadius

@@ -10,6 +10,13 @@ import UIKit
 
 public extension UIColor {
     
+    static func random() -> UIColor {
+        let r = CGFloat(arc4random() % 255) / 255.0
+        let g = CGFloat(arc4random() % 255) / 255.0
+        let b = CGFloat(arc4random() % 255) / 255.0
+        return UIColor(red: r, green: g, blue: b, alpha: 1.0)
+    }
+    
     static var normal: UIColor {
         return UIColor(red: 244.0 / 255.0, green: 234.0 / 255.0, blue: 42.0 / 255.0, alpha: 1.0)
     }

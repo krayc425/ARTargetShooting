@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import SceneKit
 
 public extension UIViewController {
     

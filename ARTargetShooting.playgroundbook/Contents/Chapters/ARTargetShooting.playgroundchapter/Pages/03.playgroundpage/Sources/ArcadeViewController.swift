@@ -24,19 +24,16 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
                 playSound(.success)
             }
             DispatchQueue.main.async { [unowned self] in
-                self.scoreLabel.text = "\(self.currentScore)"
+                let node = self.scoreNode
+                let text = node.geometry as! SCNText
+                text.string = "\(self.currentScore)"
+                
+                let material = SCNMaterial()
+                material.diffuse.contents = UIColor.random()
+                node.geometry?.materials = [material]
             }
         }
     }
-    private lazy var scoreLabel: UILabel = {
-        let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
-        label.textColor = .white
-        label.text = "0"
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
     private lazy var waitLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
@@ -49,6 +46,22 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
     private var targetNodes = Set<TargetNode>()
+    
+    private lazy var scoreNode: SCNNode = {
+        let text = SCNText(string: "0", extrusionDepth: 0.5)
+        text.chamferRadius = 1.0
+        text.flatness = 0.1
+        text.font = UIFont.systemFont(ofSize: 30.0, weight: .bold)
+        let node = SCNNode(geometry: text)
+        node.scale = SCNVector3(0.05, 0.05, 0.05)
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.random()
+        node.geometry?.materials = [material]
+        let (minBound, maxBound) = text.boundingBox
+        node.position = SCNVector3(0.0, 0.5, -10.0)
+        node.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x), 0, 0)
+        return node
+    }()
     
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
@@ -122,10 +135,10 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         let waitLabelheightConstraint = NSLayoutConstraint(item: self.waitLabel, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 0, constant: 200)
         self.view.addConstraints([waitLabelleftMarginConstraint, waitLabelrightMarginConstraint, waitLabelcenterXConstraint, waitLabelcenterYConstraint, waitLabelheightConstraint])
         
-        var blurViewleftMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .left, relatedBy: .equal, toItem: self.waitLabel, attribute: .left, multiplier: 1, constant: 0)
-        var blurViewrightMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .right, relatedBy: .equal, toItem: self.waitLabel, attribute: .right, multiplier: 1, constant: 0)
-        var blurViewtopMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .top, relatedBy: .equal, toItem: self.waitLabel, attribute: .top, multiplier: 1, constant: 0)
-        var blurViewbottomMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .bottom, relatedBy: .equal, toItem: self.waitLabel, attribute: .bottom, multiplier: 1, constant: 0)
+        let blurViewleftMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .left, relatedBy: .equal, toItem: self.waitLabel, attribute: .left, multiplier: 1, constant: 0)
+        let blurViewrightMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .right, relatedBy: .equal, toItem: self.waitLabel, attribute: .right, multiplier: 1, constant: 0)
+        let blurViewtopMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .top, relatedBy: .equal, toItem: self.waitLabel, attribute: .top, multiplier: 1, constant: 0)
+        let blurViewbottomMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .bottom, relatedBy: .equal, toItem: self.waitLabel, attribute: .bottom, multiplier: 1, constant: 0)
         self.view.addConstraints([blurViewleftMarginConstraint, blurViewrightMarginConstraint, blurViewtopMarginConstraint, blurViewbottomMarginConstraint])
         
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) { [unowned self] in
@@ -136,24 +149,9 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
             self.waitLabel.removeFromSuperview()
-            self.view.addSubview(self.scoreLabel)
+            self.blurView.removeFromSuperview()
             frontSight.alpha = 1.0
-            
-            let scoreLabelleftMarginConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .left, relatedBy: .equal, toItem: self.view, attribute: .left, multiplier: 1, constant: 0)
-            let scoreLabelrightMarginConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .right, relatedBy: .equal, toItem: self.view, attribute: .right, multiplier: 1, constant: 0)
-            let scoreLabelheightConstraint = NSLayoutConstraint(item: self.scoreLabel, attribute: .height, relatedBy: .equal, toItem: nil, attribute: .notAnAttribute, multiplier: 0, constant: 100)
-            self.view.addConstraints([scoreLabelleftMarginConstraint, scoreLabelrightMarginConstraint, scoreLabelheightConstraint])
-            
-            blurViewleftMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .left, relatedBy: .equal, toItem: self.scoreLabel, attribute: .left, multiplier: 1, constant: 0)
-            blurViewrightMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .right, relatedBy: .equal, toItem: self.scoreLabel, attribute: .right, multiplier: 1, constant: 0)
-            blurViewtopMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .top, relatedBy: .equal, toItem: self.scoreLabel, attribute: .top, multiplier: 1, constant: 0)
-            blurViewbottomMarginConstraint = NSLayoutConstraint(item: self.blurView, attribute: .bottom, relatedBy: .equal, toItem: self.scoreLabel, attribute: .bottom, multiplier: 1, constant: 0)
-            self.view.addConstraints([blurViewleftMarginConstraint, blurViewrightMarginConstraint, blurViewtopMarginConstraint, blurViewbottomMarginConstraint])
-            
-            NSLayoutConstraint.activate([
-                self.scoreLabel.topAnchor.constraint(equalTo: self.liveViewSafeAreaGuide.topAnchor)
-                ])
-            
+            self.sceneView.scene.rootNode.addChildNode(self.scoreNode)
             RunLoop.main.add(self.generateTimer, forMode: .commonModes)
         }
     }
@@ -216,7 +214,9 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         playSound(.shoot)
         
         let bulletDirection = direction
-        bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
+        bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2,
+                                                      bulletDirection.y * 2,
+                                                      bulletDirection.z * 2),
                                            asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
     }
@@ -227,7 +227,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         }
         
         var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.presentation.position.y < -5 && !target.hit {
+        for target in targetNodes where (target.presentation.position.y < -5 || target.presentation.position.z < -10) && !target.hit {
             targetToRemove.append(target)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -253,7 +253,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         
     }
     
-    private func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
+    func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
         if let frame = self.sceneView.session.currentFrame {
             let mat = SCNMatrix4(frame.camera.transform)
             let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)

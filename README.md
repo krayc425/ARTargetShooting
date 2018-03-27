@@ -32,6 +32,7 @@ The Playground version was specifically modified for submission to WWDC 2018, so
 
 # License
 
-GNU GENERAL PUBLIC LICENSE Version 3
+This project/repository is under GNU GENERAL PUBLIC LICENSE Version 3.
+All audio assets are under CC0 1.0 Universal License.
 
 

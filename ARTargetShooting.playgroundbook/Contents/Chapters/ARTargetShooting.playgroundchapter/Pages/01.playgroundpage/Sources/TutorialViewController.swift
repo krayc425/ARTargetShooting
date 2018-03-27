@@ -40,7 +40,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         didSet {
             if doneTutorial {
                 PlaygroundPage.current.assessmentStatus = .pass(message: "**Good Job!🎉** You've shot your first target down! Now let's go to the [**Next Page**](@next) and try something cool.")
-                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(500)) { [unowned self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(700)) { [unowned self] in
                     self.playSound(.success)
                 }
             }
@@ -180,7 +180,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         
     }
     
-    private func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
+    func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
         if let frame = self.sceneView.session.currentFrame {
             let mat = SCNMatrix4(frame.camera.transform)
             let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)

@@ -18,18 +18,16 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     private var currentScore: Int = 0 {
         didSet {
             DispatchQueue.main.async { [unowned self] in
-                self.scoreLabel.text = "\(self.currentScore)"
+                let node = self.scoreNode
+                let text = node.geometry as! SCNText
+                text.string = "\(self.currentScore)"
+                
+                let material = SCNMaterial()
+                material.diffuse.contents = UIColor.random()
+                node.geometry?.materials = [material]
             }
         }
     }
-    private lazy var scoreLabel: UILabel = {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 100))
-        label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
-        label.textColor = .white
-        label.text = "0"
-        label.textAlignment = .center
-        return label
-    }()
     private lazy var blurView: UIVisualEffectView = {
         let blurEffect = UIBlurEffect(style: .dark)
         return UIVisualEffectView(effect: blurEffect)
@@ -45,6 +43,22 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }()
     
     private var targetNodes = Set<TargetNode>()
+    
+    private lazy var scoreNode: SCNNode = {
+        let text = SCNText(string: "0", extrusionDepth: 0.5)
+        text.chamferRadius = 1.0
+        text.flatness = 0.1
+        text.font = UIFont.systemFont(ofSize: 40.0, weight: .bold)
+        let node = SCNNode(geometry: text)
+        node.scale = SCNVector3(0.05, 0.05, 0.05)
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.random()
+        node.geometry?.materials = [material]
+        node.position = SCNVector3(-0.5, 0, -10)
+        let (minBound, maxBound) = text.boundingBox
+        node.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x) / 2, minBound.y, 0.5 / 2)
+        return node
+    }()
     
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
@@ -88,10 +102,12 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) { [unowned self] in
             self.waitLabel.removeFromSuperview()
-            self.blurView.frame = self.scoreLabel.frame
-            self.view.addSubview(self.scoreLabel)
+            self.blurView.removeFromSuperview()
+            
             RunLoop.main.add(self.generateTimer, forMode: .commonModes)
         }
+        
+        self.sceneView.scene.rootNode.addChildNode(scoreNode)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
