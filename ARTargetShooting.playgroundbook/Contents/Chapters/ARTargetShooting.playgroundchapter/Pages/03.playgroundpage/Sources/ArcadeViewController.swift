@@ -11,7 +11,7 @@ import SceneKit
 import ARKit
 import PlaygroundSupport
 
-public class ArcadeViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer {
+public class ArcadeViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer, ARSessionDelegate {
     
     private let generationCycle     : TimeInterval   = 5.0
     
@@ -46,7 +46,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
     private var targetNodes = Set<TargetNode>()
-    
+//    private var planes: [UUID: PlaneNode] = [:]
     private lazy var scoreNode: SCNNode = {
         let text = SCNText(string: "0", extrusionDepth: 0.5)
         text.chamferRadius = 1.0
@@ -97,6 +97,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
             ])
         
         sceneView.delegate = self
+        sceneView.session.delegate = self
         
         let scene = SCNScene()
         sceneView.scene = scene
@@ -110,6 +111,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
+//        configuration.planeDetection = .horizontal
         
         sceneView.session.run(configuration)
         
@@ -204,30 +206,25 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
         let bulletNode = BulletNode()
-        
+
         let (direction, position) = getUserVector()
+        bulletNode.position = position + direction * 4
         
-        let originalZ: Float = Float(-5.0 + bulletRadius * 2.0)
-        bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
-                                         position.y + (originalZ - position.z) * direction.y / direction.z,
-                                         originalZ)
-        playSound(.shoot)
-        
-        let bulletDirection = direction
-        bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2,
-                                                      bulletDirection.y * 2,
-                                                      bulletDirection.z * 2),
+        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 8,
+                                                      direction.y * 8,
+                                                      direction.z * 8),
                                            asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
+        
+        playSound(.shoot)
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
             node.removeFromParentNode()
         }
-        
         var targetToRemove: [TargetNode] = []
-        for target in targetNodes where (target.presentation.position.y < -5 || target.presentation.position.z < -10) && !target.hit {
+        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
             targetToRemove.append(target)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -237,6 +234,29 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
             }
         }
     }
+    
+//    public func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+//        print("Add a node")
+//        guard let anchor = anchor as? ARPlaneAnchor else {
+//            return
+//        }
+//        
+//        let plane = PlaneNode(withAnchor: anchor)
+//        planes[anchor.identifier] = plane
+//        node.addChildNode(plane)
+//    }
+//    
+//    public func renderer(_ renderer: SCNSceneRenderer, willUpdate node: SCNNode, for anchor: ARAnchor) {
+//        guard let plane = planes[anchor.identifier] else {
+//            return
+//        }
+//        
+//        plane.update(anchor: anchor as! ARPlaneAnchor)
+//    }
+//    
+//    public func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+//        planes.removeValue(forKey: anchor.identifier)
+//    }
     
     public func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user

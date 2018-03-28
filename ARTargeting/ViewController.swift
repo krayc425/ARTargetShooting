@@ -10,7 +10,7 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
+class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
     private let frontSightRadius    : CGFloat        = 25.0
     private let generationCycle     : TimeInterval   = 3.0
@@ -43,7 +43,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }()
     
     private var targetNodes = Set<TargetNode>()
-    
+    private var planes: [UUID: PlaneNode] = [:]
     private lazy var scoreNode: SCNNode = {
         let text = SCNText(string: "0", extrusionDepth: 0.5)
         text.chamferRadius = 1.0
@@ -74,6 +74,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         super.viewDidLoad()
         
         sceneView.delegate = self
+        sceneView.session.delegate = self
         
         let scene = SCNScene()
         sceneView.scene = scene
@@ -87,6 +88,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
+        configuration.planeDetection = .horizontal
 
         sceneView.session.run(configuration)
         
@@ -129,13 +131,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         var i = 0
         while i < count {
-            guard targetNodes.count <= 10 else {
-                return
-            }
-            
             let x: Float = (Float(arc4random() % 20) / 5.0) - 2.0
             let y: Float = (Float(arc4random() % 10) / 5.0)
-            let z: Float = -5.0
+            let z: Float = -(Float(arc4random() % 20) / 5.0) - 2.0
             
             let newPosition = SCNVector3(x, y, z)
             if targetNodes.filter({ (node) -> Bool in
@@ -161,34 +159,19 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
         let (direction, position) = getUserVector()
         
-        let originalZ: Float = Float(-5.0 + bulletRadius * 2.0)
-        bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
-                                         position.y + (originalZ - position.z) * direction.y / direction.z,
-                                         originalZ)
-        bulletNode.rotation = SCNVector4(1, 0, 0, Double.pi / 2)
-
-        let bulletDirection = direction
-        bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
+//        let originalZ: Float = Float(-5.0 + bulletRadius * 2.0)
+//        bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
+//                                         position.y + (originalZ - position.z) * direction.y / direction.z,
+//                                         originalZ)
+        bulletNode.position = position + direction * 2.0
+        print(bulletNode.position)
+        
+        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 3,
+                                                      direction.y * 3,
+                                                      direction.z * 3),
                                            asImpulse: true)
         bulletNode.playSound(.shoot)
         sceneView.scene.rootNode.addChildNode(bulletNode)
-    }
-    
-    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
-            node.removeFromParentNode()
-        }
-        
-        var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.presentation.position.y < -5 && !target.hit {
-            targetToRemove.append(target)
-        }
-        DispatchQueue.main.async { [unowned self] in
-            targetToRemove.forEach {
-                $0.removeFromParentNode()
-                self.targetNodes.remove($0)
-            }
-        }
     }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
@@ -206,10 +189,49 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
     }
     
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
+            node.removeFromParentNode()
+        }
+        var targetToRemove: [TargetNode] = []
+        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
+            targetToRemove.append(target)
+        }
+        DispatchQueue.main.async { [unowned self] in
+            targetToRemove.forEach {
+                $0.removeFromParentNode()
+                self.targetNodes.remove($0)
+            }
+        }
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        print("Add a node")
+        guard let anchor = anchor as? ARPlaneAnchor else {
+            return
+        }
+        
+        let plane = PlaneNode(withAnchor: anchor)
+        planes[anchor.identifier] = plane
+        node.addChildNode(plane)
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, willUpdate node: SCNNode, for anchor: ARAnchor) {
+        guard let plane = planes[anchor.identifier] else {
+            return
+        }
+        
+        plane.update(anchor: anchor as! ARPlaneAnchor)
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+        planes.removeValue(forKey: anchor.identifier)
+    }
+    
     private func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
         if let frame = self.sceneView.session.currentFrame {
             let mat = SCNMatrix4(frame.camera.transform)
-            let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)
+            let direction = SCNVector3(-mat.m31, -mat.m32, -mat.m33)
             let position = SCNVector3(mat.m41, mat.m42, mat.m43)
             return (direction, position)
         }

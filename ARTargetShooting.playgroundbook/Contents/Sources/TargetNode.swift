@@ -15,6 +15,7 @@ public let targetRadius: CGFloat = 0.2
 public enum CollisionCategory: Int {
     case bullet = 1
     case target = 2
+    case floor  = 4
 }
 
 public enum TargetNodeTypeNum: Int {
@@ -94,7 +95,7 @@ public class TargetNode: SCNNode {
         targetNode.physicsBody?.mass = 0.15
         
         targetNode.physicsBody?.categoryBitMask = CollisionCategory.target.rawValue
-        targetNode.physicsBody?.contactTestBitMask = CollisionCategory.bullet.rawValue
+        targetNode.physicsBody?.contactTestBitMask = CollisionCategory.bullet.rawValue | CollisionCategory.floor.rawValue
         
         let material = SCNMaterial()
         let n = arc4random() % 10
@@ -141,7 +142,7 @@ public class TargetNode: SCNNode {
     }
     
     public static func generateSmallTarget(oldTarget: TargetNode) -> TargetNode {
-        let newRadius = oldTarget.radius * 0.85
+        let newRadius = oldTarget.radius * 0.9
         let targetNode = TargetNode()
         
         let cylinder = SCNCylinder(radius: newRadius, height: targetRadius / 10.0)

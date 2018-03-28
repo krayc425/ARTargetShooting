@@ -11,7 +11,7 @@ import SceneKit
 import ARKit
 import PlaygroundSupport
 
-public class ClassicViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer {
+public class ClassicViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer, ARSessionDelegate {
     
     private let generationCycle     : TimeInterval   = 3.0
     
@@ -62,7 +62,7 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     }()
     
     private var targetNodes = Set<TargetNode>()
-    
+    private var planes: [UUID: PlaneNode] = [:]
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
         return Timer(timeInterval: generationCycle, repeats: true) { _ in
@@ -97,6 +97,7 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
             ])
         
         sceneView.delegate = self
+        sceneView.session.delegate = self
         
         let scene = SCNScene()
         sceneView.scene = scene
@@ -110,6 +111,7 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
+        configuration.planeDetection = .horizontal
         
         sceneView.session.run(configuration)
         
@@ -178,13 +180,9 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         
         var i = 0
         while i < count {
-            guard targetNodes.count <= 10 else {
-                return
-            }
-            
-            let x: Float = (Float(arc4random() % 20) / 5.0) - 2.0
-            let y: Float = (Float(arc4random() % 10) / 5.0) + 0.5
-            let z: Float = -5.0
+            let x: Float = Float(arc4random() % 4) - 2.0
+            let y: Float = Float(arc4random() % 2)
+            let z: Float = -Float(arc4random() % 2) - 3.0
             
             let newPosition = SCNVector3(x, y, z)
             if targetNodes.filter({ (node) -> Bool in
@@ -213,26 +211,23 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         let bulletNode = BulletNode()
         
         let (direction, position) = getUserVector()
+        bulletNode.position = position + direction * 2.0
         
-        let originalZ: Float = Float(-5.0 + bulletRadius * 2.0)
-        bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
-                                         position.y + (originalZ - position.z) * direction.y / direction.z,
-                                         originalZ)
-        playSound(.shoot)
-        
-        let bulletDirection = direction
-        bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
+        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 3.5,
+                                                      direction.y * 3.5,
+                                                      direction.z * 3.5),
                                            asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
+        
+        playSound(.shoot)
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
             node.removeFromParentNode()
         }
-        
         var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.presentation.position.y < -5 && !target.hit {
+        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
             targetToRemove.append(target)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -241,6 +236,28 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
                 self.targetNodes.remove($0)
             }
         }
+    }
+    
+    public func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        guard let anchor = anchor as? ARPlaneAnchor else {
+            return
+        }
+
+        let plane = PlaneNode(withAnchor: anchor)
+        planes[anchor.identifier] = plane
+        node.addChildNode(plane)
+    }
+    
+    public func renderer(_ renderer: SCNSceneRenderer, willUpdate node: SCNNode, for anchor: ARAnchor) {
+        guard let plane = planes[anchor.identifier] else {
+            return
+        }
+        
+        plane.update(anchor: anchor as! ARPlaneAnchor)
+    }
+    
+    public func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+        planes.removeValue(forKey: anchor.identifier)
     }
     
     public func session(_ session: ARSession, didFailWithError error: Error) {
@@ -261,11 +278,11 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
         if let frame = self.sceneView.session.currentFrame {
             let mat = SCNMatrix4(frame.camera.transform)
-            let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)
+            let direction = SCNVector3(-mat.m31, -mat.m32, -mat.m33)
             let position = SCNVector3(mat.m41, mat.m42, mat.m43)
             return (direction, position)
         }
-        return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
+        return (.zero, .zero)
     }
     
 }

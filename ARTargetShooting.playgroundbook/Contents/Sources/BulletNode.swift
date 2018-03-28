@@ -23,14 +23,14 @@ public class BulletNode: SCNNode {
         
         let shape = SCNPhysicsShape(geometry: sphere, options: nil)
         self.physicsBody = SCNPhysicsBody(type: .dynamic, shape: shape)
-        self.physicsBody?.mass = 0.15
+        self.physicsBody?.mass = 0.3
         self.physicsBody?.isAffectedByGravity = false
         
         self.physicsBody?.categoryBitMask = CollisionCategory.bullet.rawValue
         self.physicsBody?.contactTestBitMask = CollisionCategory.target.rawValue
         
         let material = SCNMaterial()
-        material.diffuse.contents = UIColor(white: 1.0, alpha: 0.0)
+        material.diffuse.contents = UIColor.random()
         self.geometry?.materials = [material]
     }
     

@@ -138,17 +138,15 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         let bulletNode = BulletNode()
         
         let (direction, position) = getUserVector()
+        bulletNode.position = position + direction
         
-        let originalZ: Float = Float(-5.0 + bulletRadius * 2.0)
-        bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
-                                         position.y + (originalZ - position.z) * direction.y / direction.z,
-                                         originalZ)
-        playSound(.shoot)
-        
-        let bulletDirection = direction
-        bulletNode.physicsBody?.applyForce(SCNVector3(bulletDirection.x * 2, bulletDirection.y * 2, bulletDirection.z * 2),
+        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 2,
+                                                      direction.y * 2,
+                                                      direction.z * 2),
                                            asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
+        
+        playSound(.shoot)
         bulletNodes.insert(bulletNode)
     }
     
