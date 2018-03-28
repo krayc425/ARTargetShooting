@@ -34,4 +34,12 @@ extension SCNVector3 {
         return SCNVector3(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
     }
     
+    static func *(lhs: SCNVector3, rhs: SCNVector3) -> Float {
+        return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
+    }
+    
+    func theta(from anotherVector: SCNVector3) -> Float {
+        return acos(self * anotherVector / (self.length * anotherVector.length))
+    }
+    
 }

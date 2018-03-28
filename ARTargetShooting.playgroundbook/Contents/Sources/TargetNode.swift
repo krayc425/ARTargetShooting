@@ -72,7 +72,7 @@ public class TargetNode: SCNNode {
             return type?.color ?? UIColor.clear
         }
     }
-    var radius: CGFloat = targetRadius
+    public var radius: CGFloat = targetRadius
     var scoreMultiple: Int = 1
     
     public override init() {

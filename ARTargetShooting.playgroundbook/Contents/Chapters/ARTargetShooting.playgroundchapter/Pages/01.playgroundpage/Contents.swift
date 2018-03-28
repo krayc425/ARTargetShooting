@@ -1,7 +1,7 @@
 /*:
  # ARTargetShooting
  
- Hi! I'm **Kuixi Song**, a junior student majored in Software Engineering from Nanjing University, China. I've devoted to iOS development since last year and this year, I made some digging into the latest `ARKit`, which is awesome and easy to use! So I created a target shooting game for WWDC 2018 scholarship submission. Hope you like it! 😊
+ Hi! I'm **Kuixi Song**, a student majored in Software Engineering from Nanjing University, China. I've devoted to iOS development since last year and this year, I made some digging into the latest `ARKit`, which is awesome and easy to use! So I created a target shooting game for WWDC 2018 scholarship submission. Hope you like it! 😊
 
  # Tutorial
  

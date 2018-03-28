@@ -46,7 +46,7 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
     private lazy var scoreNode: SCNNode = {
-        let text = SCNText(string: "0", extrusionDepth: 0.5)
+        let text = SCNText(string: "0", extrusionDepth: 1.0)
         text.chamferRadius = 1.0
         text.flatness = 0.1
         text.font = UIFont.systemFont(ofSize: 30.0, weight: .bold)
@@ -54,7 +54,8 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         node.scale = SCNVector3(0.05, 0.05, 0.05)
         let material = SCNMaterial()
         material.diffuse.contents = UIColor.random()
-        node.geometry?.materials = [material]
+        material.isDoubleSided = true
+        node.geometry?.materials = [material, material, material, material, material]
         node.position = SCNVector3(0.0, 0.5, -10.0)
         let (minBound, maxBound) = text.boundingBox
         node.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x), 0, 0)
@@ -62,7 +63,6 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     }()
     
     private var targetNodes = Set<TargetNode>()
-    private var planes: [UUID: PlaneNode] = [:]
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
         return Timer(timeInterval: generationCycle, repeats: true) { _ in
@@ -102,7 +102,6 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         let scene = SCNScene()
         sceneView.scene = scene
         
-        sceneView.scene.physicsWorld.contactDelegate = self
         sceneView.scene.physicsWorld.gravity = self.gravity
     }
     
@@ -111,7 +110,6 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
-        configuration.planeDetection = .horizontal
         
         sceneView.session.run(configuration)
         
@@ -182,24 +180,17 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
         while i < count {
             let x: Float = Float(arc4random() % 4) - 2.0
             let y: Float = Float(arc4random() % 2)
-            let z: Float = -Float(arc4random() % 2) - 3.0
-            
-            let newPosition = SCNVector3(x, y, z)
-            if targetNodes.filter({ (node) -> Bool in
-                CGFloat(node.position.distance(from: newPosition)) <= targetRadius
-            }).count > 0 {
-                continue
-            }
+            let z: Float = -Float(arc4random() % 4) - 6.0
             
             let targetNode = TargetNode.generateTarget()
-            targetNode.position = newPosition
+            targetNode.position = SCNVector3(x, y, z)
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
             
             self.targetNodes.insert(targetNode)
             targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
             self.sceneView.scene.rootNode.addChildNode(targetNode)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(i * 100)) { [unowned self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(i * 150)) { [unowned self] in
                 self.playSound(.appear)
             }
             
@@ -208,26 +199,50 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
-        let bulletNode = BulletNode()
+        playSound(.shoot)
         
         let (direction, position) = getUserVector()
-        bulletNode.position = position + direction * 2.0
+        for targetNode in targetNodes {
+            let targetVector = targetNode.presentation.position + position * (-1)
+            guard !targetNode.hit else {
+                return
+            }
         
-        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 3.5,
-                                                      direction.y * 3.5,
-                                                      direction.z * 3.5),
-                                           asImpulse: true)
-        sceneView.scene.rootNode.addChildNode(bulletNode)
-        
-        playSound(.shoot)
+            if fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
+                currentScore += targetNode.hitScore
+
+                let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
+                particleSystem?.particleColor = targetNode.typeColor
+                let particleSystemNode = SCNNode()
+                particleSystemNode.addParticleSystem(particleSystem!)
+                particleSystemNode.position = targetNode.presentation.position
+                sceneView.scene.rootNode.addChildNode(particleSystemNode)
+
+                playSound(.hit)
+            
+                let text = SCNText(string: "\(targetNode.hitScore > 0 ? "+" : "")\(targetNode.hitScore)", extrusionDepth: 1.0)
+                text.chamferRadius = 1.0
+                text.flatness = 0.1
+                text.font = UIFont.systemFont(ofSize: 15.0, weight: .bold)
+                let addScoreNode = SCNNode(geometry: text)
+                addScoreNode.scale = SCNVector3(0.02, 0.02, 0.02)
+                let material = SCNMaterial()
+                material.diffuse.contents = targetNode.typeColor
+                addScoreNode.geometry?.materials = Array<SCNMaterial>(repeating: material, count: 5)
+                addScoreNode.position = targetNode.presentation.position + SCNVector3(-0.2, 0, 0)
+                
+                sceneView.scene.rootNode.addChildNode(addScoreNode)
+                
+                addScoreNode.runAction(SCNAction.sequence([SCNAction.move(by: SCNVector3(0, targetNode.hitScore > 0 ? 1 : -1, 0), duration: 1.0), SCNAction.removeFromParentNode()]))
+                
+                targetNode.hit = true
+            }
+        }
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
-            node.removeFromParentNode()
-        }
         var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
+        for target in targetNodes where target.hit || target.presentation.position.y < -5 {
             targetToRemove.append(target)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -236,28 +251,6 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
                 self.targetNodes.remove($0)
             }
         }
-    }
-    
-    public func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        guard let anchor = anchor as? ARPlaneAnchor else {
-            return
-        }
-
-        let plane = PlaneNode(withAnchor: anchor)
-        planes[anchor.identifier] = plane
-        node.addChildNode(plane)
-    }
-    
-    public func renderer(_ renderer: SCNSceneRenderer, willUpdate node: SCNNode, for anchor: ARAnchor) {
-        guard let plane = planes[anchor.identifier] else {
-            return
-        }
-        
-        plane.update(anchor: anchor as! ARPlaneAnchor)
-    }
-    
-    public func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
-        planes.removeValue(forKey: anchor.identifier)
     }
     
     public func session(_ session: ARSession, didFailWithError error: Error) {
@@ -283,47 +276,6 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
             return (direction, position)
         }
         return (.zero, .zero)
-    }
-    
-}
-
-extension ClassicViewController: SCNPhysicsContactDelegate {
-    
-    public func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
-        if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
-            || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
-            
-            var targetNode: TargetNode = TargetNode()
-            var bulletNode: BulletNode = BulletNode()
-            if contact.nodeA is TargetNode {
-                targetNode = contact.nodeA as! TargetNode
-                bulletNode = contact.nodeB as! BulletNode
-            } else {
-                bulletNode = contact.nodeA as! BulletNode
-                targetNode = contact.nodeB as! TargetNode
-            }
-            
-            guard !targetNode.hit && !bulletNode.hit else {
-                return
-            }
-            
-            currentScore += targetNode.hitScore
-            
-            targetNode.hit = true
-            bulletNode.hit = true
-            
-            let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
-            particleSystem?.particleColor = targetNode.typeColor
-            let particleSystemNode = SCNNode()
-            particleSystemNode.addParticleSystem(particleSystem!)
-            particleSystemNode.position = targetNode.presentation.position
-            sceneView.scene.rootNode.addChildNode(particleSystemNode)
-            
-            playSound(.hit)
-            
-            self.targetNodes.remove(targetNode)
-            targetNode.removeFromParentNode()
-        }
     }
     
 }

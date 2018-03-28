@@ -7,8 +7,6 @@
  
  From now on, **3** kind of targets will show up, and make sure that you shoot the right target, some of them have **NEGATIVE** scores!
  
- And, the bullets will take a while to fly from your position to the targets', so you should shoot a little time in advance.
- 
  ## Targets
  Targets in different colors represent different scores.
  

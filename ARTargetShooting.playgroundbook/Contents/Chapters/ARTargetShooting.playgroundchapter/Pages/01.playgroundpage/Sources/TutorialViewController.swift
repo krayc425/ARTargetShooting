@@ -26,7 +26,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     
     private lazy var targetNode: TargetNode = {
         let node = TargetNode.getSingleTarget(isTutorial: true)
-        node.position = SCNVector3(0, 0, -5)
+        node.position = SCNVector3(0, 0, -4)
         node.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
         return node
     }()
@@ -35,6 +35,8 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     public var sceneView: ARSCNView = ARSCNView()
     
     private var gravity: SCNVector3 = SCNVector3(0, -1, 0)
+    
+    private var isStarted: Bool = false
     
     fileprivate var doneTutorial: Bool = false {
         didSet {
@@ -66,7 +68,6 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         let scene = SCNScene()
         sceneView.scene = scene
         
-        sceneView.scene.physicsWorld.contactDelegate = self
         sceneView.scene.physicsWorld.gravity = self.gravity
     }
     
@@ -121,6 +122,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
             frontSight.alpha = 1.0
             self.sceneView.scene.rootNode.addChildNode(self.targetNode)
             self.playSound(.appear)
+            self.isStarted = true
         }
     }
     
@@ -140,14 +142,34 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         let (direction, position) = getUserVector()
         bulletNode.position = position + direction
         
-        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 2,
-                                                      direction.y * 2,
-                                                      direction.z * 2),
+        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x,
+                                                      direction.y,
+                                                      direction.z),
                                            asImpulse: true)
         sceneView.scene.rootNode.addChildNode(bulletNode)
         
         playSound(.shoot)
         bulletNodes.insert(bulletNode)
+        
+        let targetVector = targetNode.presentation.position + position * (-1)
+        guard isStarted && !targetNode.hit && !bulletNode.hit else {
+            return
+        }
+        
+        if fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
+            let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
+            particleSystem?.particleColor = targetNode.typeColor
+            let particleSystemNode = SCNNode()
+            particleSystemNode.addParticleSystem(particleSystem!)
+            particleSystemNode.position = targetNode.presentation.position
+            sceneView.scene.rootNode.addChildNode(particleSystemNode)
+            
+            playSound(.hit)
+            
+            targetNode.removeFromParentNode()
+            
+            self.doneTutorial = true
+        }
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
@@ -181,45 +203,11 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
         if let frame = self.sceneView.session.currentFrame {
             let mat = SCNMatrix4(frame.camera.transform)
-            let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)
+            let direction = SCNVector3(-mat.m31, -mat.m32, -mat.m33)
             let position = SCNVector3(mat.m41, mat.m42, mat.m43)
             return (direction, position)
         }
-        return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
-    }
-    
-}
-
-extension TutorialViewController: SCNPhysicsContactDelegate {
-    
-    public func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
-        if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
-            || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
-            
-            var node: TargetNode = TargetNode()
-            if contact.nodeA is TargetNode {
-                node = contact.nodeA as! TargetNode
-            } else {
-                node = contact.nodeB as! TargetNode
-            }
-            
-            guard !node.hit else {
-                return
-            }
-            
-            self.doneTutorial = true
-        
-            node.removeFromParentNode()
-            
-            let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
-            particleSystem?.particleColor = targetNode.typeColor
-            let particleSystemNode = SCNNode()
-            particleSystemNode.addParticleSystem(particleSystem!)
-            particleSystemNode.position = targetNode.presentation.position
-            sceneView.scene.rootNode.addChildNode(particleSystemNode)
-            
-            playSound(.hit)
-        }
+        return (.zero, .zero)
     }
     
 }

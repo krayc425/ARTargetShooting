@@ -30,7 +30,7 @@ public class BulletNode: SCNNode {
         self.physicsBody?.contactTestBitMask = CollisionCategory.target.rawValue
         
         let material = SCNMaterial()
-        material.diffuse.contents = UIColor.random()
+        material.diffuse.contents = UIColor.clear
         self.geometry?.materials = [material]
     }
     

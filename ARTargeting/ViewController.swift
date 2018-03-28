@@ -135,15 +135,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
             let y: Float = (Float(arc4random() % 10) / 5.0)
             let z: Float = -(Float(arc4random() % 20) / 5.0) - 2.0
             
-            let newPosition = SCNVector3(x, y, z)
-            if targetNodes.filter({ (node) -> Bool in
-                CGFloat(node.position.distance(from: newPosition)) <= targetRadius
-            }).count > 0 {
-                continue
-            }
-            
             let targetNode = TargetNode.generateTarget()
-            targetNode.position = newPosition
+            targetNode.position = SCNVector3(x, y, z)
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
             
             self.targetNodes.insert(targetNode)
@@ -193,16 +186,24 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
             node.removeFromParentNode()
         }
-        var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
-            targetToRemove.append(target)
+//        var targetToRemove: [TargetNode] = []
+//        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
+//            targetToRemove.append(target)
+//        }
+//        DispatchQueue.main.async { [unowned self] in
+//            targetToRemove.forEach {
+//                $0.removeFromParentNode()
+//                self.targetNodes.remove($0)
+//            }
+//        }
+        
+        let (pos, dir) = getUserVector()
+        
+        for targetNode in targetNodes {
+            let targetVector = targetNode.presentation.position + pos * (-1)
+            print(targetVector.theta(from: dir))
         }
-        DispatchQueue.main.async { [unowned self] in
-            targetToRemove.forEach {
-                $0.removeFromParentNode()
-                self.targetNodes.remove($0)
-            }
-        }
+        
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
@@ -258,7 +259,6 @@ extension ViewController: SCNPhysicsContactDelegate {
             }
             
             currentScore += targetNode.hitScore
-            targetNode.hit = true
             
             let particleSystem = SCNParticleSystem(named: "art.scnassets/Explode.scnp", inDirectory: nil)
             particleSystem?.particleColor = targetNode.type?.color ?? .clear
@@ -271,6 +271,23 @@ extension ViewController: SCNPhysicsContactDelegate {
             
             self.targetNodes.remove(targetNode)
             targetNode.removeFromParentNode()
+            
+            let text = SCNText(string: "\(targetNode.hitScore > 0 ? "+" : "")\(targetNode.hitScore)", extrusionDepth: 1.0)
+            text.chamferRadius = 1.0
+            text.flatness = 0.1
+            text.font = UIFont.systemFont(ofSize: 10.0, weight: .bold)
+            let addScoreNode = SCNNode(geometry: text)
+            addScoreNode.scale = SCNVector3(0.01, 0.01, 0.01)
+            let material = SCNMaterial()
+            material.diffuse.contents = targetNode.type?.color ?? .white
+            addScoreNode.geometry?.materials = Array<SCNMaterial>(repeating: material, count: 5)
+            addScoreNode.position = targetNode.presentation.position
+            
+            sceneView.scene.rootNode.addChildNode(addScoreNode)
+           
+            addScoreNode.runAction(SCNAction.sequence([SCNAction.move(by: SCNVector3(0, 0.1, 0), duration: 1.0), SCNAction.removeFromParentNode()]))
+            
+            targetNode.hit = true
         }
     }
 

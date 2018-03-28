@@ -46,9 +46,8 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
     private var targetNodes = Set<TargetNode>()
-//    private var planes: [UUID: PlaneNode] = [:]
     private lazy var scoreNode: SCNNode = {
-        let text = SCNText(string: "0", extrusionDepth: 0.5)
+        let text = SCNText(string: "0", extrusionDepth: 1.0)
         text.chamferRadius = 1.0
         text.flatness = 0.1
         text.font = UIFont.systemFont(ofSize: 30.0, weight: .bold)
@@ -56,7 +55,8 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         node.scale = SCNVector3(0.05, 0.05, 0.05)
         let material = SCNMaterial()
         material.diffuse.contents = UIColor.random()
-        node.geometry?.materials = [material]
+        material.isDoubleSided = true
+        node.geometry?.materials = [material, material, material, material, material]
         let (minBound, maxBound) = text.boundingBox
         node.position = SCNVector3(0.0, 0.5, -10.0)
         node.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x), 0, 0)
@@ -102,7 +102,6 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         let scene = SCNScene()
         sceneView.scene = scene
         
-        sceneView.scene.physicsWorld.contactDelegate = self
         sceneView.scene.physicsWorld.gravity = self.gravity
     }
     
@@ -111,7 +110,6 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
-//        configuration.planeDetection = .horizontal
         
         sceneView.session.run(configuration)
         
@@ -173,14 +171,12 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     }
     
     private func generateTarget() {
-        let x: Float = (Float(arc4random() % 20) / 5.0) - 2.0
-        let y: Float = (Float(arc4random() % 10) / 5.0) + 0.5
-        let z: Float = -5.0
-        
-        let newPosition = SCNVector3(x, y, z)
+        let x: Float = Float(arc4random() % 4) - 2.0
+        let y: Float = Float(arc4random() % 2) + 0.5
+        let z: Float = -Float(arc4random() % 4) - 4.0
         
         let targetNode = TargetNode.getSingleTarget(isTutorial: false)
-        targetNode.position = newPosition
+        targetNode.position = SCNVector3(x, y, z)
         targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
         
         self.targetNodes.insert(targetNode)
@@ -205,26 +201,52 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
-        let bulletNode = BulletNode()
-
-        let (direction, position) = getUserVector()
-        bulletNode.position = position + direction * 4
-        
-        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 8,
-                                                      direction.y * 8,
-                                                      direction.z * 8),
-                                           asImpulse: true)
-        sceneView.scene.rootNode.addChildNode(bulletNode)
-        
         playSound(.shoot)
+        
+        let (direction, position) = getUserVector()
+        for targetNode in targetNodes {
+            let targetVector = targetNode.presentation.position + position * (-1)
+            guard !targetNode.hit else {
+                return
+            }
+            
+            if fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
+                currentScore += targetNode.hitScore
+
+                self.generateSmallTarget(oldTarget: targetNode)
+
+                let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
+                particleSystem?.particleColor = targetNode.typeColor
+                let particleSystemNode = SCNNode()
+                particleSystemNode.addParticleSystem(particleSystem!)
+                particleSystemNode.position = targetNode.presentation.position
+                sceneView.scene.rootNode.addChildNode(particleSystemNode)
+                
+                playSound(.hit)
+                
+                let text = SCNText(string: "\(targetNode.hitScore > 0 ? "+" : "")\(targetNode.hitScore)", extrusionDepth: 1.0)
+                text.chamferRadius = 1.0
+                text.flatness = 0.1
+                text.font = UIFont.systemFont(ofSize: 15.0, weight: .bold)
+                let addScoreNode = SCNNode(geometry: text)
+                addScoreNode.scale = SCNVector3(0.02, 0.02, 0.02)
+                let material = SCNMaterial()
+                material.diffuse.contents = targetNode.typeColor
+                addScoreNode.geometry?.materials = Array<SCNMaterial>(repeating: material, count: 5)
+                addScoreNode.position = targetNode.presentation.position + SCNVector3(-0.2, 0, 0)
+                
+                sceneView.scene.rootNode.addChildNode(addScoreNode)
+                
+                addScoreNode.runAction(SCNAction.sequence([SCNAction.move(by: SCNVector3(0, targetNode.hitScore > 0 ? 1 : -1, 0), duration: 1.0), SCNAction.removeFromParentNode()]))
+                
+                targetNode.hit = true
+            }
+        }
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
-            node.removeFromParentNode()
-        }
         var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
+        for target in targetNodes where target.hit || target.presentation.position.y < -5 {
             targetToRemove.append(target)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -234,29 +256,6 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
             }
         }
     }
-    
-//    public func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-//        print("Add a node")
-//        guard let anchor = anchor as? ARPlaneAnchor else {
-//            return
-//        }
-//        
-//        let plane = PlaneNode(withAnchor: anchor)
-//        planes[anchor.identifier] = plane
-//        node.addChildNode(plane)
-//    }
-//    
-//    public func renderer(_ renderer: SCNSceneRenderer, willUpdate node: SCNNode, for anchor: ARAnchor) {
-//        guard let plane = planes[anchor.identifier] else {
-//            return
-//        }
-//        
-//        plane.update(anchor: anchor as! ARPlaneAnchor)
-//    }
-//    
-//    public func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
-//        planes.removeValue(forKey: anchor.identifier)
-//    }
     
     public func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
@@ -281,49 +280,6 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
             return (direction, position)
         }
         return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
-    }
-    
-}
-
-extension ArcadeViewController: SCNPhysicsContactDelegate {
-    
-    public func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
-        if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
-            || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
-            
-            var targetNode: TargetNode = TargetNode()
-            var bulletNode: BulletNode = BulletNode()
-            if contact.nodeA is TargetNode {
-                targetNode = contact.nodeA as! TargetNode
-                bulletNode = contact.nodeB as! BulletNode
-            } else {
-                bulletNode = contact.nodeA as! BulletNode
-                targetNode = contact.nodeB as! TargetNode
-            }
-            
-            guard !targetNode.hit && !bulletNode.hit else {
-                return
-            }
-            
-            currentScore += targetNode.hitScore
-            
-            targetNode.hit = true
-            bulletNode.hit = true
-
-            self.generateSmallTarget(oldTarget: targetNode)
-            
-            self.targetNodes.remove(targetNode)
-            targetNode.removeFromParentNode()
-            
-            let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
-            particleSystem?.particleColor = targetNode.typeColor
-            let particleSystemNode = SCNNode()
-            particleSystemNode.addParticleSystem(particleSystem!)
-            particleSystemNode.position = targetNode.presentation.position
-            sceneView.scene.rootNode.addChildNode(particleSystemNode)
-            
-            playSound(.hit)
-        }
     }
     
 }
