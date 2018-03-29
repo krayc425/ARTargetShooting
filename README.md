@@ -1,6 +1,6 @@
 # ARTargetShooting
 
-An AR shooting game for the WWDC 2018 Scholarship. [Accepted / Rejected]
+An AR shooting game for the WWDC 2018 Scholarship. [Submitted]
 
 **WWDC 2018 Instruction**
 

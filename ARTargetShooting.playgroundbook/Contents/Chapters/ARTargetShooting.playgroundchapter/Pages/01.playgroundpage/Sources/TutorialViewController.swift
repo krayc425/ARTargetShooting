@@ -40,7 +40,7 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     fileprivate var doneTutorial: Bool = false {
         didSet {
             if doneTutorial {
-                PlaygroundPage.current.assessmentStatus = .pass(message: "**Good Job!🎉** You've shot your first target down! Now let's go to the [**Next Page**](@next) and try something cool.")
+                PlaygroundPage.current.assessmentStatus = .pass(message: "**Good Job! 🎉** You've shot your first target down! Now let's go to the [**Next Page**](@next) and try something cool.")
                 DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(700)) { [unowned self] in
                     self.playSound(.success)
                 }

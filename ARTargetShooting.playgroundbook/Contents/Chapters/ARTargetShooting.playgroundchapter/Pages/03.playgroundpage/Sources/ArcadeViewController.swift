@@ -20,7 +20,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         didSet {
             if !hasSucceeded && currentScore >= 100 {
                 hasSucceeded = true
-                PlaygroundPage.current.assessmentStatus = .pass(message: "You've got **100** points in **Arcade** mode, hope you have had fun shooting targets down!😆 Last but not the least, if you want a more challenging game, please adjust the gravity value on the 👈left!")
+                PlaygroundPage.current.assessmentStatus = .pass(message: "You've got **100** points in **Arcade** mode, hope you have had fun shooting targets down! 😆 Last but not the least, if you want a more challenging game, please adjust the gravity value on the 👈 left!")
                 playSound(.success)
             }
             DispatchQueue.main.async { [unowned self] in
