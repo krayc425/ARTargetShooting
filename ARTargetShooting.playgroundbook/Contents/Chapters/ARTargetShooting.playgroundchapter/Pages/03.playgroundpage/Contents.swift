@@ -5,7 +5,7 @@
  
  In **Arcade** mode, after you shoot a target, it will break up into **2 smaller** targets. And if you shoot the new target again, you will acquire **DOUBLE** score of the new target!
  
- However, the new target will be 1 of the 3 kinds of targets **randomly**. So wipe your glasses and watch!😎
+ However, the new target will be 1 of the 3 kinds of targets **randomly**. Please watch out for the **RED** ones!😎
  
  ## For example
  

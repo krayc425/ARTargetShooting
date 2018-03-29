@@ -9,7 +9,7 @@
 import UIKit
 import ARKit
 
-public extension UIViewController {
+extension UIViewController {
     
     func playSound(_ type: SoundType) {
         SoundHelper.shared.playSound(of: type)

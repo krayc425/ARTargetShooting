@@ -10,21 +10,14 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
+class ViewController: UIViewController, ARSCNViewDelegate {
 
-    private let frontSightRadius    : CGFloat        = 25.0
     private let generationCycle     : TimeInterval   = 3.0
     
     private var currentScore: Int = 0 {
         didSet {
             DispatchQueue.main.async { [unowned self] in
-                let node = self.scoreNode
-                let text = node.geometry as! SCNText
-                text.string = "\(self.currentScore)"
-                
-                let material = SCNMaterial()
-                material.diffuse.contents = UIColor.random()
-                node.geometry?.materials = [material]
+                self.scoreNode.update(score: self.currentScore)
             }
         }
     }
@@ -33,7 +26,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         return UIVisualEffectView(effect: blurEffect)
     }()
     private lazy var waitLabel: UILabel = {
-        let label = UILabel(frame: CGRect(x: screenWidth / 2.0 - 150, y: screenHeight / 2.0 - 100, width: 300, height: 200))
+        let label = UILabel(frame: CGRect(x: 0,
+                                          y: screenHeight / 2.0 - 100,
+                                          width: screenWidth,
+                                          height: 200))
         label.font = UIFont.systemFont(ofSize: 35.0, weight: .bold)
         label.textColor = .white
         label.text = "Move around\nyour device"
@@ -43,22 +39,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }()
     
     private var targetNodes = Set<TargetNode>()
-    private var planes: [UUID: PlaneNode] = [:]
-    private lazy var scoreNode: SCNNode = {
-        let text = SCNText(string: "0", extrusionDepth: 0.5)
-        text.chamferRadius = 1.0
-        text.flatness = 0.1
-        text.font = UIFont.systemFont(ofSize: 40.0, weight: .bold)
-        let node = SCNNode(geometry: text)
-        node.scale = SCNVector3(0.05, 0.05, 0.05)
-        let material = SCNMaterial()
-        material.diffuse.contents = UIColor.random()
-        node.geometry?.materials = [material]
-        node.position = SCNVector3(-0.5, 0, -10)
-        let (minBound, maxBound) = text.boundingBox
-        node.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x) / 2, minBound.y, 0.5 / 2)
-        return node
-    }()
+    private var scoreNode = ScoreNode()
     
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
@@ -70,11 +51,12 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     @IBOutlet weak var sceneView: ARSCNView!
     @IBOutlet weak var frontSight: FrontSightView!
     
+    var planes = [UUID:Plane]()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         sceneView.delegate = self
-        sceneView.session.delegate = self
         
         let scene = SCNScene()
         sceneView.scene = scene
@@ -89,8 +71,10 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
         configuration.planeDetection = .horizontal
-
+        
         sceneView.session.run(configuration)
+        
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(gestureRecognize:)))
         view.addGestureRecognizer(tapGesture)
@@ -99,17 +83,17 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         self.view.addSubview(self.blurView)
         self.view.addSubview(self.waitLabel)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(4)) { [unowned self] in
             self.waitLabel.text = "Tap to Shoot!"
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) { [unowned self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
             self.waitLabel.removeFromSuperview()
             self.blurView.removeFromSuperview()
             
+            self.sceneView.scene.rootNode.addChildNode(self.scoreNode)
+            
             RunLoop.main.add(self.generateTimer, forMode: .commonModes)
         }
-        
-        self.sceneView.scene.rootNode.addChildNode(scoreNode)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -127,46 +111,72 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     private func generateTarget() {
-        let count = Int(arc4random() % 3) + 1
+        let x: Float = 0.0
+//        Float(arc4random() % 4) - 2.0
+        let y: Float = Float(arc4random() % 2) + 0.5
+        let z: Float = -1.0
+//        -Float(arc4random() % 4) - 4.0
         
-        var i = 0
-        while i < count {
-            let x: Float = (Float(arc4random() % 20) / 5.0) - 2.0
-            let y: Float = (Float(arc4random() % 10) / 5.0)
-            let z: Float = -(Float(arc4random() % 20) / 5.0) - 2.0
+        let targetNode = TargetNode.getSingleTarget(isTutorial: false)
+        targetNode.position = SCNVector3(x, y, z)
+        
+        self.targetNodes.insert(targetNode)
+        targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
+        self.sceneView.scene.rootNode.addChildNode(targetNode)
+        
+        targetNode.runAction(SCNAction.scale(by: <#T##CGFloat#>, duration: <#T##TimeInterval#>))
+        
+        playSound(.appear)
+    }
+    
+    private func generateSmallTarget(oldTarget: TargetNode) {
+        let oldPosition = oldTarget.presentation.position
+        
+        for i in 0...1 {
+            let targetNode = TargetNode.generateSmallTarget(oldTarget: oldTarget)
+            targetNode.position = oldPosition
             
-            let targetNode = TargetNode.generateTarget()
-            targetNode.position = SCNVector3(x, y, z)
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
             
             self.targetNodes.insert(targetNode)
-            targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
+            targetNode.physicsBody?.applyForce(SCNVector3((0.5 - Double(i)) * 0.6, drand48() - 0.5, 0.0), asImpulse: true)
             self.sceneView.scene.rootNode.addChildNode(targetNode)
-            
-            i += 1
+        }
+    }
+    
+    @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
+        playSound(.shoot)
+        
+        let (direction, position) = getUserVector(in: self.sceneView.session.currentFrame)
+        
+        for targetNode in targetNodes {
+            let targetVector = targetNode.presentation.position + position * (-1)
+            if !targetNode.hit && fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
+                currentScore += targetNode.hitScore
+                self.generateSmallTarget(oldTarget: targetNode)
+                playSound(.hit)
+                sceneView.scene.rootNode.addChildNode(ExplosionNode(targetNode: targetNode))
+                sceneView.scene.rootNode.addChildNode(AddScoreNode(targetNode: targetNode))
+                targetNode.hit = true
+                break
+            }
+        }
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        var targetToRemove: [TargetNode] = []
+        for target in targetNodes where target.hit {
+//            || target.presentation.position.y < -10 {
+            targetToRemove.append(target)
+        }
+        DispatchQueue.main.async { [unowned self] in
+            targetToRemove.forEach {
+                $0.removeFromParentNode()
+                self.targetNodes.remove($0)
+            }
         }
     }
 
-    @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
-        let bulletNode = BulletNode()
-
-        let (direction, position) = getUserVector()
-        
-//        let originalZ: Float = Float(-5.0 + bulletRadius * 2.0)
-//        bulletNode.position = SCNVector3(position.x + (originalZ - position.z) * direction.x / direction.z,
-//                                         position.y + (originalZ - position.z) * direction.y / direction.z,
-//                                         originalZ)
-        bulletNode.position = position + direction * 2.0
-        print(bulletNode.position)
-        
-        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x * 3,
-                                                      direction.y * 3,
-                                                      direction.z * 3),
-                                           asImpulse: true)
-        bulletNode.playSound(.shoot)
-        sceneView.scene.rootNode.addChildNode(bulletNode)
-    }
-    
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
         
@@ -182,42 +192,18 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        for node in sceneView.scene.rootNode.childNodes where node is BulletNode &&  node.presentation.position.distance(from: .zero) > 20 {
-            node.removeFromParentNode()
-        }
-//        var targetToRemove: [TargetNode] = []
-//        for target in targetNodes where target.presentation.position.y < -20 && !target.hit {
-//            targetToRemove.append(target)
-//        }
-//        DispatchQueue.main.async { [unowned self] in
-//            targetToRemove.forEach {
-//                $0.removeFromParentNode()
-//                self.targetNodes.remove($0)
-//            }
-//        }
-        
-        let (pos, dir) = getUserVector()
-        
-        for targetNode in targetNodes {
-            let targetVector = targetNode.presentation.position + pos * (-1)
-            print(targetVector.theta(from: dir))
-        }
-        
-    }
-    
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        print("Add a node")
         guard let anchor = anchor as? ARPlaneAnchor else {
             return
         }
         
-        let plane = PlaneNode(withAnchor: anchor)
+        // 检测到新平面时创建 SceneKit 平面以实现 3D 视觉化
+        let plane = Plane(withAnchor: anchor)
         planes[anchor.identifier] = plane
         node.addChildNode(plane)
     }
     
-    func renderer(_ renderer: SCNSceneRenderer, willUpdate node: SCNNode, for anchor: ARAnchor) {
+    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
         guard let plane = planes[anchor.identifier] else {
             return
         }
@@ -226,17 +212,8 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+        // 如果多个独立平面被发现共属某个大平面，此时会合并它们，并移除这些 node
         planes.removeValue(forKey: anchor.identifier)
-    }
-    
-    private func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
-        if let frame = self.sceneView.session.currentFrame {
-            let mat = SCNMatrix4(frame.camera.transform)
-            let direction = SCNVector3(-mat.m31, -mat.m32, -mat.m33)
-            let position = SCNVector3(mat.m41, mat.m42, mat.m43)
-            return (direction, position)
-        }
-        return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
     }
     
 }
@@ -244,51 +221,7 @@ class ViewController: UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 extension ViewController: SCNPhysicsContactDelegate {
     
     func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
-        if contact.nodeA.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue
-            || contact.nodeB.physicsBody?.categoryBitMask == CollisionCategory.target.rawValue {
-            
-            var targetNode: TargetNode = TargetNode()
-            if contact.nodeA is TargetNode {
-                targetNode = contact.nodeA as! TargetNode
-            } else {
-                targetNode = contact.nodeB as! TargetNode
-            }
-            
-            guard !targetNode.hit else {
-                return
-            }
-            
-            currentScore += targetNode.hitScore
-            
-            let particleSystem = SCNParticleSystem(named: "art.scnassets/Explode.scnp", inDirectory: nil)
-            particleSystem?.particleColor = targetNode.type?.color ?? .clear
-            let particleSystemNode = SCNNode()
-            particleSystemNode.addParticleSystem(particleSystem!)
-            particleSystemNode.position = targetNode.presentation.position
-            sceneView.scene.rootNode.addChildNode(particleSystemNode)
-            
-            particleSystemNode.playSound(.hit)
-            
-            self.targetNodes.remove(targetNode)
-            targetNode.removeFromParentNode()
-            
-            let text = SCNText(string: "\(targetNode.hitScore > 0 ? "+" : "")\(targetNode.hitScore)", extrusionDepth: 1.0)
-            text.chamferRadius = 1.0
-            text.flatness = 0.1
-            text.font = UIFont.systemFont(ofSize: 10.0, weight: .bold)
-            let addScoreNode = SCNNode(geometry: text)
-            addScoreNode.scale = SCNVector3(0.01, 0.01, 0.01)
-            let material = SCNMaterial()
-            material.diffuse.contents = targetNode.type?.color ?? .white
-            addScoreNode.geometry?.materials = Array<SCNMaterial>(repeating: material, count: 5)
-            addScoreNode.position = targetNode.presentation.position
-            
-            sceneView.scene.rootNode.addChildNode(addScoreNode)
-           
-            addScoreNode.runAction(SCNAction.sequence([SCNAction.move(by: SCNVector3(0, 0.1, 0), duration: 1.0), SCNAction.removeFromParentNode()]))
-            
-            targetNode.hit = true
-        }
+        
     }
-
+    
 }

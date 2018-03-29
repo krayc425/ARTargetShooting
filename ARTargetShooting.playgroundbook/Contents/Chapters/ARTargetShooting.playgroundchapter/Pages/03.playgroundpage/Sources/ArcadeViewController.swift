@@ -11,7 +11,7 @@ import SceneKit
 import ARKit
 import PlaygroundSupport
 
-public class ArcadeViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer, ARSessionDelegate {
+public class ArcadeViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer {
     
     private let generationCycle     : TimeInterval   = 5.0
     
@@ -20,17 +20,11 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         didSet {
             if !hasSucceeded && currentScore >= 100 {
                 hasSucceeded = true
-                PlaygroundPage.current.assessmentStatus = .pass(message: "You've got **100** points in **Arcade** mode! Now please just have fun shooting targets down!😆")
+                PlaygroundPage.current.assessmentStatus = .pass(message: "You've got **100** points in **Arcade** mode, hope you have had fun shooting targets down!😆 Last but not the least, if you want a more challenging game, please adjust the gravity value on the 👈left!")
                 playSound(.success)
             }
             DispatchQueue.main.async { [unowned self] in
-                let node = self.scoreNode
-                let text = node.geometry as! SCNText
-                text.string = "\(self.currentScore)"
-                
-                let material = SCNMaterial()
-                material.diffuse.contents = UIColor.random()
-                node.geometry?.materials = [material]
+                self.scoreNode.update(score: self.currentScore)
             }
         }
     }
@@ -46,22 +40,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     private var blurView: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
     
     private var targetNodes = Set<TargetNode>()
-    private lazy var scoreNode: SCNNode = {
-        let text = SCNText(string: "0", extrusionDepth: 1.0)
-        text.chamferRadius = 1.0
-        text.flatness = 0.1
-        text.font = UIFont.systemFont(ofSize: 30.0, weight: .bold)
-        let node = SCNNode(geometry: text)
-        node.scale = SCNVector3(0.05, 0.05, 0.05)
-        let material = SCNMaterial()
-        material.diffuse.contents = UIColor.random()
-        material.isDoubleSided = true
-        node.geometry?.materials = [material, material, material, material, material]
-        let (minBound, maxBound) = text.boundingBox
-        node.position = SCNVector3(0.0, 0.5, -10.0)
-        node.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x), 0, 0)
-        return node
-    }()
+    private var scoreNode = ScoreNode()
     
     private lazy var generateTimer: Timer = {
         weak var weakSelf = self
@@ -97,7 +76,6 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
             ])
         
         sceneView.delegate = self
-        sceneView.session.delegate = self
         
         let scene = SCNScene()
         sceneView.scene = scene
@@ -186,7 +164,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
         playSound(.appear)
     }
     
-    fileprivate func generateSmallTarget(oldTarget: TargetNode) {
+    private func generateSmallTarget(oldTarget: TargetNode) {
         let oldPosition = oldTarget.presentation.position
         
         for i in 0...1 {
@@ -195,7 +173,9 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
             targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
         
             self.targetNodes.insert(targetNode)
-            targetNode.physicsBody?.applyForce(SCNVector3((0.5 - Double(i)) * 0.5, drand48() - 0.5, 0.0), asImpulse: true)
+            targetNode.physicsBody?.applyForce(SCNVector3((0.5 - Double(i)) * drand48(),
+                                                          drand48() - 0.5,
+                                                          drand48() - 0.5), asImpulse: true)
             self.sceneView.scene.rootNode.addChildNode(targetNode)
         }
     }
@@ -203,50 +183,29 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
         playSound(.shoot)
         
-        let (direction, position) = getUserVector()
+        let (direction, position) = getUserVector(in: self.sceneView.session.currentFrame)
         for targetNode in targetNodes {
             let targetVector = targetNode.presentation.position + position * (-1)
-            guard !targetNode.hit else {
-                return
-            }
-            
-            if fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
+            if !targetNode.hit && fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
                 currentScore += targetNode.hitScore
-
                 self.generateSmallTarget(oldTarget: targetNode)
-
-                let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
-                particleSystem?.particleColor = targetNode.typeColor
-                let particleSystemNode = SCNNode()
-                particleSystemNode.addParticleSystem(particleSystem!)
-                particleSystemNode.position = targetNode.presentation.position
-                sceneView.scene.rootNode.addChildNode(particleSystemNode)
-                
                 playSound(.hit)
+                sceneView.scene.rootNode.addChildNode(ExplosionNode(targetNode: targetNode))
                 
-                let text = SCNText(string: "\(targetNode.hitScore > 0 ? "+" : "")\(targetNode.hitScore)", extrusionDepth: 1.0)
-                text.chamferRadius = 1.0
-                text.flatness = 0.1
-                text.font = UIFont.systemFont(ofSize: 15.0, weight: .bold)
-                let addScoreNode = SCNNode(geometry: text)
-                addScoreNode.scale = SCNVector3(0.02, 0.02, 0.02)
-                let material = SCNMaterial()
-                material.diffuse.contents = targetNode.typeColor
-                addScoreNode.geometry?.materials = Array<SCNMaterial>(repeating: material, count: 5)
-                addScoreNode.position = targetNode.presentation.position + SCNVector3(-0.2, 0, 0)
-                
-                sceneView.scene.rootNode.addChildNode(addScoreNode)
-                
-                addScoreNode.runAction(SCNAction.sequence([SCNAction.move(by: SCNVector3(0, targetNode.hitScore > 0 ? 1 : -1, 0), duration: 1.0), SCNAction.removeFromParentNode()]))
+                let addNode = AddScoreNode(targetNode: targetNode)
+                let pointOfViewRotation = sceneView.pointOfView?.rotation
+                addNode.rotation = SCNVector4(0, pointOfViewRotation!.y, 0, pointOfViewRotation!.w)
+                sceneView.scene.rootNode.addChildNode(addNode)
                 
                 targetNode.hit = true
+                break
             }
         }
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.hit || target.presentation.position.y < -5 {
+        for target in targetNodes where target.hit || target.presentation.position.y < -10 {
             targetToRemove.append(target)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -270,16 +229,6 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     public func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required
         
-    }
-    
-    func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
-        if let frame = self.sceneView.session.currentFrame {
-            let mat = SCNMatrix4(frame.camera.transform)
-            let direction = SCNVector3(-1 * mat.m31, -1 * mat.m32, -1 * mat.m33)
-            let position = SCNVector3(mat.m41, mat.m42, mat.m43)
-            return (direction, position)
-        }
-        return (SCNVector3(0, 0, -1), SCNVector3(0, 0, -0.2))
     }
     
 }

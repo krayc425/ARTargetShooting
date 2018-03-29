@@ -8,7 +8,6 @@
 
 import UIKit
 import SceneKit
-import PlaygroundSupport
 
 public let targetRadius: CGFloat = 0.2
 
@@ -142,7 +141,7 @@ public class TargetNode: SCNNode {
     }
     
     public static func generateSmallTarget(oldTarget: TargetNode) -> TargetNode {
-        let newRadius = oldTarget.radius * 0.9
+        let newRadius = oldTarget.radius * 0.8
         let targetNode = TargetNode()
         
         let cylinder = SCNCylinder(radius: newRadius, height: targetRadius / 10.0)
@@ -159,10 +158,10 @@ public class TargetNode: SCNNode {
         let material = SCNMaterial()
         
         let n = arc4random() % 10
-        if n <= 2 {
+        if n <= 1 {
             targetNode.type = TargetNodeType(typeNum: .high)
             material.diffuse.contents = UIImage(named: "target-high")
-        } else if n >= 7 {
+        } else if n >= 6 {
             targetNode.type = TargetNodeType(typeNum: .demon)
             material.diffuse.contents = UIImage(named: "target-demon")
         } else {

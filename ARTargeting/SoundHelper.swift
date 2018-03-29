@@ -10,21 +10,23 @@ import Foundation
 import SceneKit
 import AudioToolbox
 
-enum SoundType: String {
+public enum SoundType: String {
     case shoot
     case hit
+    case success
+    case appear
 }
 
-class SoundHelper: NSObject {
+public class SoundHelper: NSObject {
     
-    static let shared: SoundHelper = SoundHelper()
+    public static let shared: SoundHelper = SoundHelper()
     
     private var soundIds: [SoundType: SystemSoundID] = [:]
     
     private override init() {
-        for type in [SoundType.hit, SoundType.shoot] {
+        for type in [SoundType.hit, SoundType.shoot, SoundType.success, SoundType.appear] {
             var soundID: SystemSoundID = 0
-            let path = Bundle.main.path(forResource: type.rawValue, ofType: "mp3")
+            let path = Bundle.main.path(forResource: type.rawValue, ofType: "wav")
             let baseURL = NSURL(fileURLWithPath: path!)
             AudioServicesCreateSystemSoundID(baseURL, &soundID)
             
@@ -32,8 +34,10 @@ class SoundHelper: NSObject {
         }
     }
     
-    func playSound(of type: SoundType) {
+    public func playSound(of type: SoundType) {
         AudioServicesPlaySystemSound(soundIds[type]!)
     }
     
 }
+
+

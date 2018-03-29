@@ -30,7 +30,6 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
         node.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
         return node
     }()
-    private var bulletNodes = Set<BulletNode>()
     
     public var sceneView: ARSCNView = ARSCNView()
     
@@ -137,51 +136,20 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
-        let bulletNode = BulletNode()
-        
-        let (direction, position) = getUserVector()
-        bulletNode.position = position + direction
-        
-        bulletNode.physicsBody?.applyForce(SCNVector3(direction.x,
-                                                      direction.y,
-                                                      direction.z),
-                                           asImpulse: true)
-        sceneView.scene.rootNode.addChildNode(bulletNode)
-        
         playSound(.shoot)
-        bulletNodes.insert(bulletNode)
         
-        let targetVector = targetNode.presentation.position + position * (-1)
-        guard isStarted && !targetNode.hit && !bulletNode.hit else {
+        guard isStarted && !targetNode.hit else {
             return
         }
         
+        let (direction, position) = getUserVector(in: self.sceneView.session.currentFrame)
+        
+        let targetVector = targetNode.presentation.position + position * (-1)
         if fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
-            let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
-            particleSystem?.particleColor = targetNode.typeColor
-            let particleSystemNode = SCNNode()
-            particleSystemNode.addParticleSystem(particleSystem!)
-            particleSystemNode.position = targetNode.presentation.position
-            sceneView.scene.rootNode.addChildNode(particleSystemNode)
-            
+            sceneView.scene.rootNode.addChildNode(ExplosionNode(targetNode: targetNode))
             playSound(.hit)
-            
             targetNode.removeFromParentNode()
-            
             self.doneTutorial = true
-        }
-    }
-    
-    public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        var bulletToRemove: [BulletNode] = []
-        for bullet in bulletNodes where bullet.presentation.position.distance(from: .zero) > 20 {
-            bulletToRemove.append(bullet)
-        }
-        DispatchQueue.main.async { [unowned self] in
-            bulletToRemove.forEach {
-                $0.removeFromParentNode()
-                self.bulletNodes.remove($0)
-            }
         }
     }
     
@@ -198,16 +166,6 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     public func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required
         
-    }
-    
-    func getUserVector() -> (direction: SCNVector3, position: SCNVector3) {
-        if let frame = self.sceneView.session.currentFrame {
-            let mat = SCNMatrix4(frame.camera.transform)
-            let direction = SCNVector3(-mat.m31, -mat.m32, -mat.m33)
-            let position = SCNVector3(mat.m41, mat.m42, mat.m43)
-            return (direction, position)
-        }
-        return (.zero, .zero)
     }
     
 }
