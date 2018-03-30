@@ -6,6 +6,12 @@
  # Tutorial
  
  In order to let you get familiar with the game quickly, I designed a simple tutorial for you. After tapping the `Run My Code` button, move your iPad around to initialize the `ARKit`. Once done, one yellow target will show up in the center of the screen. Then, please use the front sight (also in the center of screen) to aim at that target, and tap the screen to shoot it down!
+ 
+ ## Notice
+ 
+ * When the game starts, keep your iPad at the same height as your head to find the target.
+ * I recommend you run the game in a **full screen + landscape** mode.
+ 
  */
 
 //: [Next Page](@next)

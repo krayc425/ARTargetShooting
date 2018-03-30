@@ -14,7 +14,7 @@ import PlaygroundSupport
 public class ClassicViewController: UIViewController, ARSCNViewDelegate, PlaygroundLiveViewSafeAreaContainer {
     
     private let generationCycle     : TimeInterval   = 3.0
-    
+
     private var hasSucceeded: Bool = false
     private var currentScore: Int = 0 {
         didSet {
@@ -52,6 +52,8 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     public var sceneView: ARSCNView = ARSCNView()
     
     private var gravity: SCNVector3 = SCNVector3(0, -1, 0)
+    
+    private var isStarted: Bool = false
     
     public convenience init(gravityValue: UInt) {
         self.init(nibName: nil, bundle: nil)
@@ -134,6 +136,7 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
             frontSight.alpha = 1.0
             self.sceneView.scene.rootNode.addChildNode(self.scoreNode)
             RunLoop.main.add(self.generateTimer, forMode: .commonModes)
+            self.isStarted = true
         }
     }
     
@@ -179,12 +182,21 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
-        playSound(.shoot)
+        guard isStarted else {
+            return
+        }
         
+        playSound(.shoot)
         let (direction, position) = getUserVector(in: self.sceneView.session.currentFrame)
+        
+        var endVector = position + direction * 10
+        
         for targetNode in targetNodes {
             let targetVector = targetNode.presentation.position + position * (-1)
-            if !targetNode.hit && fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
+            let targetDistance = targetNode.presentation.position.distance(from: position)
+            
+            if !targetNode.hit && fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetDistance)) {
+                
                 currentScore += targetNode.hitScore
                 playSound(.hit)
                 sceneView.scene.rootNode.addChildNode(ExplosionNode(targetNode: targetNode))
@@ -193,10 +205,17 @@ public class ClassicViewController: UIViewController, ARSCNViewDelegate, Playgro
                 let pointOfViewRotation = sceneView.pointOfView?.rotation
                 addNode.rotation = SCNVector4(0, pointOfViewRotation!.y, 0, pointOfViewRotation!.w)
                 sceneView.scene.rootNode.addChildNode(addNode)
+                
+                endVector = targetNode.presentation.position
+                
                 targetNode.hit = true
                 break
             }
         }
+        
+        let lineNode = SCNNode.lineFrom(from: endVector, to: position + direction * 0.1)
+        lineNode.runAction(SCNAction.sequence([SCNAction.fadeOut(duration: 3.0), SCNAction.removeFromParentNode()]))
+        sceneView.scene.rootNode.addChildNode(lineNode)
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {

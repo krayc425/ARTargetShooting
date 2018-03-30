@@ -12,7 +12,7 @@ import SceneKit
 public extension SCNNode {
     
     public static func lineFrom(from: SCNVector3, to: SCNVector3, radius: CGFloat = 0.0001) -> SCNNode {
-        let vector = to + from * (-1)
+        let vector = to - from
         let height = vector.length
         let cylinder = SCNCylinder(radius: radius,
                                    height: CGFloat(height))

@@ -53,6 +53,8 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     
     private var gravity: SCNVector3 = SCNVector3(0, -1, 0)
     
+    private var isStarted: Bool = false
+    
     public convenience init(gravityValue: UInt) {
         self.init(nibName: nil, bundle: nil)
 
@@ -131,6 +133,7 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
             frontSight.alpha = 1.0
             self.sceneView.scene.rootNode.addChildNode(self.scoreNode)
             RunLoop.main.add(self.generateTimer, forMode: .commonModes)
+            self.isStarted = true
         }
     }
     
@@ -181,9 +184,15 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
-        playSound(.shoot)
+        guard isStarted else {
+            return
+        }
         
+        playSound(.shoot)
         let (direction, position) = getUserVector(in: self.sceneView.session.currentFrame)
+        
+        var endVector = position + direction * 10
+        
         for targetNode in targetNodes {
             let targetVector = targetNode.presentation.position + position * (-1)
             if !targetNode.hit && fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
@@ -197,10 +206,16 @@ public class ArcadeViewController: UIViewController, ARSCNViewDelegate, Playgrou
                 addNode.rotation = SCNVector4(0, pointOfViewRotation!.y, 0, pointOfViewRotation!.w)
                 sceneView.scene.rootNode.addChildNode(addNode)
                 
+                endVector = targetNode.presentation.position
+                
                 targetNode.hit = true
                 break
             }
         }
+        
+        let lineNode = SCNNode.lineFrom(from: endVector, to: position + direction * 0.1)
+        lineNode.runAction(SCNAction.sequence([SCNAction.fadeOut(duration: 3.0), SCNAction.removeFromParentNode()]))
+        sceneView.scene.rootNode.addChildNode(lineNode)
     }
     
     public func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {

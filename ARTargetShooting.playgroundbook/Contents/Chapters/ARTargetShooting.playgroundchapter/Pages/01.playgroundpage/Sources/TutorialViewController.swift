@@ -44,6 +44,20 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
                 DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(700)) { [unowned self] in
                     self.playSound(.success)
                 }
+                
+                func generateRandomExplosion() {
+                    let randomSecond = Int(arc4random() % 1000 + 500)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(randomSecond), execute: {
+                        let x: Float = Float(arc4random() % 2) - 1.0
+                        let y: Float = Float(arc4random() % 2) - 0.5
+                        let z: Float = -Float(arc4random() % 4) - 4.0
+                        
+                        self.sceneView.scene.rootNode.addChildNode(ExplosionNode(position: SCNVector3(x, y, z)))
+                        
+                        generateRandomExplosion()
+                    })
+                }
+                generateRandomExplosion()
             }
         }
     }
@@ -136,21 +150,31 @@ public class TutorialViewController: UIViewController, ARSCNViewDelegate, Playgr
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
-        playSound(.shoot)
-        
-        guard isStarted && !targetNode.hit else {
+        guard isStarted && !targetNode.hit && !doneTutorial else {
             return
         }
         
+        playSound(.shoot)
+        
         let (direction, position) = getUserVector(in: self.sceneView.session.currentFrame)
         
-        let targetVector = targetNode.presentation.position + position * (-1)
+        let targetVector = targetNode.presentation.position - position
         if fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
             sceneView.scene.rootNode.addChildNode(ExplosionNode(targetNode: targetNode))
             playSound(.hit)
+            targetNode.hit = true
             targetNode.removeFromParentNode()
             self.doneTutorial = true
+            
+            let addNode = AddScoreNode(targetNode: targetNode, text: "WWDC18")
+            let pointOfViewRotation = sceneView.pointOfView?.rotation
+            addNode.rotation = SCNVector4(0, pointOfViewRotation!.y, 0, pointOfViewRotation!.w)
+            sceneView.scene.rootNode.addChildNode(addNode)
         }
+        
+        let lineNode = SCNNode.lineFrom(from: position + direction * 10, to: position + direction * 0.1)
+        lineNode.runAction(SCNAction.sequence([SCNAction.fadeOut(duration: 2.5), SCNAction.removeFromParentNode()]))
+        sceneView.scene.rootNode.addChildNode(lineNode)
     }
     
     public func session(_ session: ARSession, didFailWithError error: Error) {

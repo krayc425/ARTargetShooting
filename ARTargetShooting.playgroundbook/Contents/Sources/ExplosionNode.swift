@@ -21,6 +21,16 @@ public class ExplosionNode: SCNNode {
         self.position = targetNode.presentation.position
     }
     
+    public init(position: SCNVector3) {
+        super.init()
+        
+        let particleSystem = SCNParticleSystem(named: "Explode.scnp", inDirectory: nil)
+        particleSystem?.particleColor = UIColor.random()
+        
+        self.addParticleSystem(particleSystem!)
+        self.position = position
+    }
+    
     public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

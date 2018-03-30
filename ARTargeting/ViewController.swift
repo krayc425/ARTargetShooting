@@ -51,7 +51,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     @IBOutlet weak var sceneView: ARSCNView!
     @IBOutlet weak var frontSight: FrontSightView!
     
-    var planes = [UUID:Plane]()
+    private var isStarted: Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -70,7 +70,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         let configuration = ARWorldTrackingConfiguration()
         configuration.worldAlignment = .gravity
-        configuration.planeDetection = .horizontal
         
         sceneView.session.run(configuration)
         
@@ -89,9 +88,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) { [unowned self] in
             self.waitLabel.removeFromSuperview()
             self.blurView.removeFromSuperview()
-            
             self.sceneView.scene.rootNode.addChildNode(self.scoreNode)
-            
+            self.isStarted = true
             RunLoop.main.add(self.generateTimer, forMode: .commonModes)
         }
     }
@@ -111,20 +109,17 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     private func generateTarget() {
-        let x: Float = 0.0
-//        Float(arc4random() % 4) - 2.0
+        let x: Float = Float(arc4random() % 4) - 2.0
         let y: Float = Float(arc4random() % 2) + 0.5
-        let z: Float = -1.0
-//        -Float(arc4random() % 4) - 4.0
+        let z: Float = -Float(arc4random() % 4) - 4.0
         
         let targetNode = TargetNode.getSingleTarget(isTutorial: false)
         targetNode.position = SCNVector3(x, y, z)
+        targetNode.rotation = SCNVector4(x: 1, y: 0, z: 0, w: .pi / 2.0)
         
         self.targetNodes.insert(targetNode)
         targetNode.physicsBody?.applyForce(SCNVector3(0, 0.25, 0), asImpulse: true)
         self.sceneView.scene.rootNode.addChildNode(targetNode)
-        
-        targetNode.runAction(SCNAction.scale(by: <#T##CGFloat#>, duration: <#T##TimeInterval#>))
         
         playSound(.appear)
     }
@@ -145,28 +140,49 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     @objc private func handleTap(gestureRecognize: UITapGestureRecognizer) {
+        guard isStarted else {
+            return
+        }
+        
         playSound(.shoot)
         
         let (direction, position) = getUserVector(in: self.sceneView.session.currentFrame)
         
+        var endVector = position + direction * 10
+        
         for targetNode in targetNodes {
             let targetVector = targetNode.presentation.position + position * (-1)
-            if !targetNode.hit && fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetNode.presentation.position.distance(from: position))) {
+            
+            let targetDistance = targetNode.presentation.position.distance(from: position)
+            
+            if !targetNode.hit && fabs(targetVector.theta(from: direction)) <= fabs(atan(Float(targetNode.radius) / targetDistance)) {
+                
                 currentScore += targetNode.hitScore
                 self.generateSmallTarget(oldTarget: targetNode)
                 playSound(.hit)
                 sceneView.scene.rootNode.addChildNode(ExplosionNode(targetNode: targetNode))
-                sceneView.scene.rootNode.addChildNode(AddScoreNode(targetNode: targetNode))
+                
+                let addNode = AddScoreNode(targetNode: targetNode)
+                let pointOfViewRotation = sceneView.pointOfView?.rotation
+                addNode.rotation = SCNVector4(0, pointOfViewRotation!.y, 0, pointOfViewRotation!.w)
+                sceneView.scene.rootNode.addChildNode(addNode)
+                
+                endVector = targetNode.presentation.position
+                
                 targetNode.hit = true
+
                 break
             }
         }
+        
+        let lineNode = SCNNode.lineFrom(from: endVector, to: position + direction * 0.1)
+        lineNode.runAction(SCNAction.sequence([SCNAction.fadeOut(duration: 3.0), SCNAction.removeFromParentNode()]))
+        sceneView.scene.rootNode.addChildNode(lineNode)
     }
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         var targetToRemove: [TargetNode] = []
-        for target in targetNodes where target.hit {
-//            || target.presentation.position.y < -10 {
+        for target in targetNodes where target.hit || target.presentation.position.y < -10 {
             targetToRemove.append(target)
         }
         DispatchQueue.main.async { [unowned self] in
@@ -190,30 +206,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     func sessionInterruptionEnded(_ session: ARSession) {
         // Reset tracking and/or remove existing anchors if consistent tracking is required
         
-    }
-    
-    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        guard let anchor = anchor as? ARPlaneAnchor else {
-            return
-        }
-        
-        // 检测到新平面时创建 SceneKit 平面以实现 3D 视觉化
-        let plane = Plane(withAnchor: anchor)
-        planes[anchor.identifier] = plane
-        node.addChildNode(plane)
-    }
-    
-    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        guard let plane = planes[anchor.identifier] else {
-            return
-        }
-        
-        plane.update(anchor: anchor as! ARPlaneAnchor)
-    }
-    
-    func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
-        // 如果多个独立平面被发现共属某个大平面，此时会合并它们，并移除这些 node
-        planes.removeValue(forKey: anchor.identifier)
     }
     
 }

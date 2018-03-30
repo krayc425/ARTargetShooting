@@ -13,23 +13,38 @@ public class AddScoreNode: SCNNode {
     
     private var score: Int = 0
     
-    public init(targetNode: TargetNode) {
+    private var isText: Bool = false
+    
+    public init(targetNode: TargetNode, text: String? = nil) {
         super.init()
         
         self.score = targetNode.hitScore
         
-        let text = SCNText(string: "\(score > 0 ? "+" : "")\(score)", extrusionDepth: 1.0)
-        text.chamferRadius = 1.0
-        text.flatness = 0.1
-        text.font = UIFont.systemFont(ofSize: 15.0, weight: .bold)
+        var scnTextString = ""
         
-        self.geometry = text
+        if text == nil {
+            scnTextString = "\(score > 0 ? "+" : "")\(score)"
+        } else {
+            scnTextString = text!
+            isText = true
+        }
+        
+        let scnText = SCNText(string: scnTextString, extrusionDepth: 1.0)
+        scnText.chamferRadius = 1.0
+        scnText.flatness = 0.1
+        scnText.font = UIFont.systemFont(ofSize: 15.0, weight: .bold)
+        
+        self.geometry = scnText
         self.scale = SCNVector3(0.02, 0.02, 0.02)
         
         let material = SCNMaterial()
         material.diffuse.contents = targetNode.typeColor
         self.geometry?.materials = Array<SCNMaterial>(repeating: material, count: 5)
         self.position = targetNode.presentation.position + SCNVector3(-0.2, 0, 0)
+        
+        
+        let (minBound, maxBound) = scnText.boundingBox
+        self.pivot = SCNMatrix4MakeTranslation((maxBound.x - minBound.x) / 2, minBound.y, 0.5)
         
         move()
     }
@@ -39,7 +54,11 @@ public class AddScoreNode: SCNNode {
     }
     
     private func move() {
-        self.runAction(SCNAction.sequence([SCNAction.group([SCNAction.move(by: SCNVector3(0, score >= 0 ? 0.5 : -0.5, 0), duration: 1.0), SCNAction.scale(by: 2.0, duration: 1.0)]), SCNAction.removeFromParentNode()]))
+        if isText {
+            self.runAction(SCNAction.repeatForever(SCNAction.sequence([SCNAction.move(by: SCNVector3(0, 0.5, 0), duration: 1.0), SCNAction.move(by: SCNVector3(0, -0.5, 0), duration: 1.0)])))
+        } else {
+            self.runAction(SCNAction.sequence([SCNAction.group([SCNAction.move(by: SCNVector3(0, score >= 0 ? 0.5 : -0.5, 0), duration: 1.0), SCNAction.scale(by: 2.0, duration: 1.0)]), SCNAction.removeFromParentNode()]))
+        }
     }
     
 }
